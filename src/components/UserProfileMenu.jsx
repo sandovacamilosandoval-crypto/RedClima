@@ -150,17 +150,27 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
           }}
           status={!isUsernameValid && tempUsername.length > 0 ? "error" : ""}
         />
-        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
-          • Usa de 3-20 caracteres
+        <span
+          className="setup-hint"
+          style={{
+            color:
+              !isUsernameValid && tempUsername.length > 0
+                ? "#ff4d4f"
+                : "#8c8c8c",
+          }}
+        >
+          • Usa letras (a–z) y números (0–9) Símbolos ( _ - . ).
         </span>
-        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
-          • Letras o números.
-        </span>
-        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
-          • Guion bajo, medio o punto.
-        </span>
-        <span className="setup-hint" style={{ color: '#a4b0be', marginTop: '4px' }}>
-          No podrás cambiarlo durante 7 días.
+        <span
+          className="setup-hint"
+          style={{
+            color:
+              !isUsernameValid && tempUsername.length > 0
+                ? "#8c8c8c"
+                : "#8c8c8c",
+          }}
+        >
+          • No podrás cambiarlo durante 7 días.
         </span>
       </div>
       <Divider />
