@@ -34,7 +34,7 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
     if (xp >= 1000) {
       return (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k";
     }
-    return xp.toString();
+    return xp.toString();  //texto de pruebasssss
   };
 
   // Lógica de Niveles
