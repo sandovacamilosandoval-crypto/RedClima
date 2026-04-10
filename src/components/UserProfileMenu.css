@@ -3,7 +3,6 @@
   color: #2d3436;
 }
 
-/* Header HUB con Logo */
 .menu-header-minimal {
   display: flex;
   align-items: center;
@@ -36,7 +35,6 @@
   color: #2d3436;
 }
 
-/* Lista Minimalista */
 .menu-item {
   display: flex;
   justify-content: space-between;
@@ -64,7 +62,6 @@
   color: #dfe4ea;
 }
 
-/* Cerrar sesión dentro de Perfil */
 .logout-item-inline {
   color: #ff7875;
   padding: 10px;
@@ -73,7 +70,6 @@
   margin-bottom: 20px;
 }
 
-/* Sub-ventanas */
 .menu-subview-container {
   animation: slideUp 0.3s ease-out;
 }
@@ -86,13 +82,13 @@
   color: #2d3436;
 }
 
-/* Inputs */
 .input-label {
   font-weight: 600;
   font-size: 13px;
   margin-bottom: 5px;
   display: block;
 }
+
 .minimal-input,
 .minimal-textarea,
 .minimal-select .ant-select-selector {
@@ -100,18 +96,19 @@
   border: 1px solid #f1f2f6 !important;
   background: #fdfdfd !important;
 }
+
 .hint {
   font-size: 11px;
   color: #a4b0be;
   margin-top: 6px;
 }
 
-/* Botones */
 .dual-buttons-container {
   display: flex;
   gap: 12px;
   margin-top: 30px;
 }
+
 .btn-action-azul,
 .btn-volver-rojo {
   flex: 1;
@@ -121,10 +118,19 @@
   font-weight: 600 !important;
   color: white !important;
 }
+
 .btn-action-azul {
   background-color: #74acff !important;
   box-shadow: 0 4px 12px rgba(116, 172, 255, 0.3) !important;
 }
+
+.btn-action-azul:disabled {
+  background-color: #d9d9d9 !important;
+  color: #a4b0be !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
 .btn-volver-rojo {
   background-color: #ff7875 !important;
   box-shadow: 0 4px 12px rgba(255, 120, 117, 0.3) !important;
@@ -135,6 +141,7 @@
   justify-content: center;
   margin-top: 30px;
 }
+
 .btn-cerrar-capsula {
   background: #ff7875 !important;
   color: white !important;
@@ -145,12 +152,12 @@
   font-weight: 600 !important;
 }
 
-/* Tabla Historial */
 .h-scroll {
   max-height: 250px;
   overflow-y: auto;
   padding-right: 5px;
 }
+
 .h-row {
   display: grid;
   grid-template-columns: 1.5fr 1fr 0.8fr;
@@ -159,16 +166,19 @@
   border-bottom: 1px solid #f1f2f6;
   align-items: center;
 }
+
 .h-head {
   font-weight: bold;
   color: #a4b0be;
   border-bottom: 2px solid #f1f2f6;
 }
+
 .truncate-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .clima-text {
   color: #74acff;
   font-weight: 600;
@@ -183,50 +193,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.btn-action-azul:disabled {
-  background-color: #d9d9d9 !important;
-  color: #a4b0be !important;
-  box-shadow: none !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-}
-.btn-action-azul:disabled {
-  background-color: #d9d9d9 !important;
-  color: #a4b0be !important;
-  box-shadow: none !important;
-  cursor: not-allowed !important;
-}
-
-/* Gamificación */
-.xp-section {
-  padding: 0px 0px 0px;
-}
-
-.xp-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 700;
-  color: #a4b0be;
-  margin-bottom: 0px;
-} 
-
-.badge-rango {
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 2px;
-}
-
-.user-info-mini h3 {
-  line-height: 1.1;
-}
-
-/* Animación suave para la barra de progreso */
-.ant-progress-bg {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }

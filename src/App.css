@@ -17,13 +17,13 @@ body,
   z-index: 1;
 }
 
-/* Título Centrado Real */
 .modal-title-centered {
   text-align: center;
   width: 100%;
-  padding-right: 0px; 
-  font-weight: 600;
+  padding-right: 0px;
+  font-weight: 700;
   color: #2c3e50;
+  font-size: 1.1rem;
 }
 
 .loading-screen {
@@ -38,57 +38,11 @@ body,
   color: #1890ff;
 }
 
-/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN --- */
-
-.custom-confirm-modal .ant-modal-confirm-body-icon {
-  display: none !important;
-}
-
-.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-title,
-.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-content {
-  text-align: center !important;
-  margin-inline-start: 0 !important;
-}
-
-.custom-confirm-modal .ant-modal-confirm-btns {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 24px;
-  float: none !important;
-}
-
-.custom-confirm-modal .ant-btn {
-  border-radius: 12px !important;
-  height: 40px;
-  padding: 4px 20px;
-}
-
-/* Estilo para el botón 'Volver' en el confirm para que sea rojo */
-.custom-confirm-modal .ant-btn-default {
-  color: #ff4d4f !important;
-  border-color: #ff4d4f !important;
-}
-
-.custom-confirm-modal .ant-btn-default:hover {
-  background-color: rgba(255, 77, 79, 0.05) !important;
-}
-
 .leaflet-container {
   width: 100%;
   height: 100%;
   z-index: 1;
-}/* Título Centrado Real */
-.modal-title-centered {
-  text-align: center;
-  width: 100%;
-  padding-right: 0px; 
-  font-weight: 700;
-  color: #2c3e50;
-  font-size: 1.1rem;
 }
-
-/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN (ACTUALIZADO) --- */
 
 .custom-confirm-modal .ant-modal-confirm-body-icon {
   display: none !important;
@@ -108,31 +62,10 @@ body,
   float: none !important;
 }
 
-/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN (BOTONES IDÉNTICOS) --- */
-
-.custom-confirm-modal .ant-modal-confirm-body-icon {
-  display: none !important;
-}
-
-.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-title,
-.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-content {
-  text-align: center !important;
-  margin-inline-start: 0 !important;
-}
-
-.custom-confirm-modal .ant-modal-confirm-btns {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 24px;
-  float: none !important;
-}
-
-/* Estilos compartidos para AMBOS botones (Cápsula) */
 .custom-confirm-modal .ant-btn {
   height: 45px !important;
   padding: 0 25px !important;
-  border-radius: 30px !important; /* Estilo cápsula perfecto */
+  border-radius: 30px !important;
   font-weight: 500 !important;
   font-size: 15px !important;
   border: none !important;
@@ -142,20 +75,18 @@ body,
   justify-content: center !important;
 }
 
-/* Botón OK / Actualizar (Azul) */
 .custom-confirm-modal .ant-btn-primary {
   background-color: #74acff !important;
   box-shadow: 0 6px 12px rgba(116, 172, 255, 0.3) !important;
 }
 
 .custom-confirm-modal .ant-btn-primary:hover {
-  background-color: #3e88f7 !important; /* Azul intenso para el hover */
-  color: rgb(0, 0, 0) !important; /* Mantenemos blanco para mejor contraste */
+  background-color: #3e88f7 !important;
+  color: white !important;
   transform: scale(1.05) translateY(-2px);
   box-shadow: 0 8px 15px rgba(62, 136, 247, 0.4) !important;
 }
 
-/* Botón Cancelar / Volver (Rojo) */
 .custom-confirm-modal .ant-btn-default {
   background-color: #ff7875 !important;
   color: white !important;
@@ -163,8 +94,8 @@ body,
 }
 
 .custom-confirm-modal .ant-btn-default:hover {
-  background-color: #ff4d4f !important; /* Rojo intenso para el hover */
-  color: rgb(0, 0, 0) !important; 
+  background-color: #ff4d4f !important;
+  color: white !important;
   transform: scale(1.05) translateY(-2px);
   box-shadow: 0 8px 15px rgba(255, 77, 79, 0.4) !important;
 }

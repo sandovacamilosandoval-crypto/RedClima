@@ -47,24 +47,11 @@
   margin-top: 8px;
 }
 
-/* .climate-option:hover .climate-label {
-  color: #ffffff;
-} */
-
-/* Colores de fondo Hover */
-.soleado { background: rgba(255, 164, 78, 1); }
-/* .soleado:hover { background: rgba(255, 164, 78, 1); } */
-
-.nublado { background: rgba(99, 110, 114, 1); }
-/* .nublado:hover { background: rgba(99, 110, 114, 1); } */
-
-.lluvia { background:rgba(104, 179, 255, 1); }
-/* .lluvia:hover { background: rgba(104, 179, 255, 1); } */
-
+.soleado  { background: rgba(255, 164, 78, 1); }
+.nublado  { background: rgba(99, 110, 114, 1); }
+.lluvia   { background: rgba(104, 179, 255, 1); }
 .tormenta { background: rgba(54, 61, 63, 1); }
-/* .tormenta:hover { background: rgba(54, 61, 63, 1); } */
 
-/* Footer y Botón Cerrar (Estilo Cápsula idéntico a Confirmación) */
 .climate-footer {
   display: flex;
   justify-content: center;
@@ -83,17 +70,14 @@
   align-items: center !important;
   justify-content: center !important;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-  
-  /* Color Base (Rojo suave) */
   background-color: #ff7875 !important;
   color: white !important;
   box-shadow: 0 6px 12px rgba(255, 120, 117, 0.3) !important;
 }
 
 .btn-cerrar-clima:hover {
-  /* Color Hover (Rojo intenso) */
   background-color: #ff4d4f !important;
   transform: scale(1.05) translateY(-2px);
-  color: white !important; /* Mantenemos blanco para consistencia visual */
+  color: white !important;
   box-shadow: 0 8px 15px rgba(255, 77, 79, 0.4) !important;
 }
