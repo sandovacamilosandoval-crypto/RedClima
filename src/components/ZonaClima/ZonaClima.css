@@ -1,0 +1,68 @@
+/* --- Estilos del Círculo (SVG Leaflet) --- */
+.animacion-pulso {
+  /* En SVG se usa stroke-dasharray para efectos, 
+     pero la animación de opacidad funciona bien */
+  animation: aparecerZona 0.6s ease-out forwards;
+}
+
+@keyframes aparecerZona {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- Contenedor del Icono Animado --- */
+.zona-clima-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.clima-icon-animated {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+/* --- Animaciones de los Iconos --- */
+.anim-soleado { animation: pulse-sun 3s infinite ease-in-out; }
+.anim-lluvia { animation: rain-drop 0.8s infinite linear; }
+.anim-nublado { animation: drift 4s infinite ease-in-out; }
+.anim-tormenta { animation: shake-flash 0.5s infinite; }
+
+@keyframes pulse-sun {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.2) drop-shadow(0 0 8px gold); }
+}
+
+@keyframes rain-drop {
+  0%, 100% { transform: translateY(-3px); }
+  50% { transform: translateY(3px); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+}
+
+@keyframes shake-flash {
+  0% { transform: translate(1px, 1px); }
+  50% { transform: translate(-1px, -1px); filter: brightness(1.4); }
+  100% { transform: translate(1px, 1px); }
+}
+
+/* --- Ajustes Globales de Mapa --- */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+}
+
+.main-content {
+  height: 100vh;
+  width: 100vw;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 1;
+}

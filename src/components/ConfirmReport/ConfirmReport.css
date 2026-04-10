@@ -1,0 +1,61 @@
+.confirm-report-container {
+  text-align: center;
+  padding: 0px 0;
+}
+
+.confirm-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: -5px;
+}
+
+.confirm-subtitle {
+  font-size: 0.95rem;
+  color: #000000;
+  margin-bottom: 25px;
+  line-height: 1;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+/* --- ESTILOS BASE PARA AMBOS BOTONES --- */
+.btn-confirm {
+  height: 40px !important;
+  padding: 0 25px !important;
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+/* --- BOTÓN VOLVER (Individual) --- */
+.btn-confirm.volver {
+  background-color: #ff7875 !important;
+  color: white !important;
+}
+
+.btn-confirm.volver:hover {
+  transform: translateY(-2px);
+  background-color: #ff4d4f !important; /* Rojo más intenso */
+  color: #000000 !important; /* Texto negro en hover según tu preferencia */
+  box-shadow: 0 4px 12px rgba(255, 120, 117, 0.4);
+}
+
+/* --- BOTÓN ACTUALIZAR (Individual) --- */
+.btn-confirm.actualizar {
+  background-color: #74acff !important;
+  color: white !important;
+}
+
+.btn-confirm.actualizar:hover {
+  transform: translateY(-2px);
+  background-color: #4096ff !important; /* Azul más intenso */
+  color: #000000 !important; /* Texto negro en hover según tu preferencia */
+  box-shadow: 0 4px 12px rgba(116, 172, 255, 0.4);
+}

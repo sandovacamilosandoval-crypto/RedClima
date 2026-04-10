@@ -1,0 +1,37 @@
+/* Botón flotante estilo RedClima2 */
+.btn-reportar-custom {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  /* Color azul del diseño que compartiste */
+  background-color: #74acff !important; 
+  color: #ffffff !important;
+  
+  border: none;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  
+  /* Sombra elegante */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease-in-out;
+  z-index: 1000;
+  
+  /* Aseguramos que el texto esté centrado */
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-reportar-custom:hover {
+  background-color: #2f82ff !important;
+  color: #000000 !important;
+  transform: translateX(-50%) scale(1.05);
+}
+
+.btn-reportar-custom:active {
+  transform: translateX(-50%) scale(0.95);
+}

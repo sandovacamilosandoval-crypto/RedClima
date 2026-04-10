@@ -1,0 +1,13 @@
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  /* La regla de oro para eliminar el scroll */
+  overflow: hidden; 
+  background-color: #f5f7fa;
+}
+
+* {
+  box-sizing: border-box; /* Asegura que el padding no estire los elementos */
+}

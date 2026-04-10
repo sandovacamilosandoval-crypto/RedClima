@@ -1,0 +1,170 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.main-content {
+  height: 100vh;
+  width: 100vw;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Título Centrado Real */
+.modal-title-centered {
+  text-align: center;
+  width: 100%;
+  padding-right: 0px; 
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f2f5;
+  gap: 20px;
+  font-family: sans-serif;
+  color: #1890ff;
+}
+
+/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN --- */
+
+.custom-confirm-modal .ant-modal-confirm-body-icon {
+  display: none !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-title,
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-content {
+  text-align: center !important;
+  margin-inline-start: 0 !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  float: none !important;
+}
+
+.custom-confirm-modal .ant-btn {
+  border-radius: 12px !important;
+  height: 40px;
+  padding: 4px 20px;
+}
+
+/* Estilo para el botón 'Volver' en el confirm para que sea rojo */
+.custom-confirm-modal .ant-btn-default {
+  color: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+}
+
+.custom-confirm-modal .ant-btn-default:hover {
+  background-color: rgba(255, 77, 79, 0.05) !important;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}/* Título Centrado Real */
+.modal-title-centered {
+  text-align: center;
+  width: 100%;
+  padding-right: 0px; 
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN (ACTUALIZADO) --- */
+
+.custom-confirm-modal .ant-modal-confirm-body-icon {
+  display: none !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-title,
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-content {
+  text-align: center !important;
+  margin-inline-start: 0 !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 24px;
+  float: none !important;
+}
+
+/* --- ESTILOS PARA MODAL DE CONFIRMACIÓN (BOTONES IDÉNTICOS) --- */
+
+.custom-confirm-modal .ant-modal-confirm-body-icon {
+  display: none !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-title,
+.custom-confirm-modal .ant-modal-confirm-body .ant-modal-confirm-content {
+  text-align: center !important;
+  margin-inline-start: 0 !important;
+}
+
+.custom-confirm-modal .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 24px;
+  float: none !important;
+}
+
+/* Estilos compartidos para AMBOS botones (Cápsula) */
+.custom-confirm-modal .ant-btn {
+  height: 45px !important;
+  padding: 0 25px !important;
+  border-radius: 30px !important; /* Estilo cápsula perfecto */
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  border: none !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Botón OK / Actualizar (Azul) */
+.custom-confirm-modal .ant-btn-primary {
+  background-color: #74acff !important;
+  box-shadow: 0 6px 12px rgba(116, 172, 255, 0.3) !important;
+}
+
+.custom-confirm-modal .ant-btn-primary:hover {
+  background-color: #3e88f7 !important; /* Azul intenso para el hover */
+  color: rgb(0, 0, 0) !important; /* Mantenemos blanco para mejor contraste */
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 8px 15px rgba(62, 136, 247, 0.4) !important;
+}
+
+/* Botón Cancelar / Volver (Rojo) */
+.custom-confirm-modal .ant-btn-default {
+  background-color: #ff7875 !important;
+  color: white !important;
+  box-shadow: 0 6px 12px rgba(255, 120, 117, 0.3) !important;
+}
+
+.custom-confirm-modal .ant-btn-default:hover {
+  background-color: #ff4d4f !important; /* Rojo intenso para el hover */
+  color: rgb(0, 0, 0) !important; 
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 8px 15px rgba(255, 77, 79, 0.4) !important;
+}
