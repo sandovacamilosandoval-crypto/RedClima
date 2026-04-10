@@ -7,8 +7,7 @@ import ReportButton from "../components/ReportButton/ReportButton";
 import ClimateMenu from "../components/ClimateMenu/ClimateMenu";
 import ZonaClima from "../components/ZonaClima/ZonaClima";
 import ConfirmReport from "../components/ConfirmReport/ConfirmReport";
-import UserProfileMenu from "../components/UserProfileMenu"; 
-import "../App.css";
+import UserProfileMenu from "../components/UserProfileMenu";
 import "./MapPage.css";
 
 const { Content } = Layout;
@@ -30,7 +29,7 @@ function MapPage() {
   const [reportes, setReportes] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [hasReported, setHasReported] = useState(false); 
+  const [hasReported, setHasReported] = useState(false);
   const timersRef = useRef({});
 
   useEffect(() => {
@@ -58,34 +57,13 @@ function MapPage() {
 
   const generarNuevaZona = (tipoClima, coordenadas, idExistente = null, tamañoActual = 250) => {
     const id = idExistente || Date.now();
-    const nuevoReporte = { 
-      id, 
-      tipo: tipoClima, 
+    const nuevoReporte = {
+      id, tipo: tipoClima,
       coords: { lat: coordenadas.lat, lng: coordenadas.lng },
-      size: tamañoActual 
+      size: tamañoActual
     };
 
-    if (!idExistente) {
-      // 1. Guardar Historial
-      const nuevoItemHistorial = {
-        id: id,
-        tipo: tipoClima.charAt(0).toUpperCase() + tipoClima.slice(1),
-        fecha: new Date().toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-        ubicacion: `${coordenadas.lat.toFixed(4)}, ${coordenadas.lng.toFixed(4)}`
-      };
-      const historialPrevio = JSON.parse(localStorage.getItem("historial_reportes") || "[]");
-      localStorage.setItem("historial_reportes", JSON.stringify([nuevoItemHistorial, ...historialPrevio]));
-
-      // 2. Lógica de XP y Niveles (+10 XP por reporte)
-      const currentXP = parseInt(localStorage.getItem("user_xp") || "0");
-      const currentReports = parseInt(localStorage.getItem("user_reports_count") || "0");
-      
-      localStorage.setItem("user_xp", (currentXP + 10).toString());
-      localStorage.setItem("user_reports_count", (currentReports + 1).toString());
-    }
-
     if (timersRef.current[id]) clearTimeout(timersRef.current[id]);
-    
     if (idExistente) {
       setReportes((prev) => prev.map((rep) => (rep.id === id ? nuevoReporte : rep)));
     } else {
@@ -95,12 +73,21 @@ function MapPage() {
     setIsModalOpen(false);
     setConfirmData(null);
     setHasReported(true);
+
+    timersRef.current[id] = setTimeout(() => {
+      setReportes((prev) => {
+        const nuevosReportes = prev.filter((rep) => rep.id !== id);
+        if (nuevosReportes.length === 0) setHasReported(false);
+        return nuevosReportes;
+      });
+      delete timersRef.current[id];
+    }, 1000000);
   };
 
   const handleReportSelection = (climaLabel) => {
     const climaId = climaLabel.toLowerCase();
     if (!userLocation) return;
-    const MARGEN_DETECCION = 0.009; 
+    const MARGEN_DETECCION = 0.009;
     const reporteCercano = reportes.find((r) => {
       const dLat = r.coords.lat - userLocation.lat;
       const dLng = r.coords.lng - userLocation.lng;
@@ -109,10 +96,10 @@ function MapPage() {
 
     if (reporteCercano) {
       setConfirmData({
-        label: climaLabel, 
-        id: reporteCercano.id, 
+        label: climaLabel,
+        id: reporteCercano.id,
         tipoAnterior: reporteCercano.tipo,
-        coordsAnteriores: reporteCercano.coords, 
+        coordsAnteriores: reporteCercano.coords,
         sizeAnterior: reporteCercano.size
       });
       setIsModalOpen(false);
@@ -125,7 +112,7 @@ function MapPage() {
   if (loading) {
     return (
       <div className="loading-screen">
-        <Spin size="large" /> 
+        <Spin size="large" />
         <p>Sincronizando con satélites...</p>
       </div>
     );
@@ -133,7 +120,7 @@ function MapPage() {
 
   return (
     <Layout className="map-layout">
-      <Button 
+      <Button
         className="btn-hamburguesa"
         shape="circle"
         icon={<MenuOutlined />}
@@ -142,15 +129,15 @@ function MapPage() {
 
       <Content className="main-content">
         <div className={`map-wrapper ${!hasReported ? "is-locked" : ""}`}>
-          <MapContainer 
-            center={[userLocation.lat, userLocation.lng]} 
-            zoom={15} 
-            style={{ height: "100%", width: "100%" }} 
+          <MapContainer
+            center={[userLocation.lat, userLocation.lng]}
+            zoom={15}
+            style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
-            <TileLayer 
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" 
-              attribution='&copy; OpenStreetMap' 
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap'
             />
             <RecenterMap coords={userLocation} />
             {reportes.map((rep) => (
@@ -185,7 +172,7 @@ function MapPage() {
 
       <Modal open={!!confirmData} onCancel={() => setConfirmData(null)} footer={null} centered width={320} closable={false}>
         {confirmData && (
-          <ConfirmReport 
+          <ConfirmReport
             climaLabel={confirmData.label}
             onCancel={() => setConfirmData(null)}
             onConfirm={() => {

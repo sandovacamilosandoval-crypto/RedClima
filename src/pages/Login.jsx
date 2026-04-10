@@ -18,19 +18,8 @@ export default function Login() {
     setLoading(true);
 
     setTimeout(() => {
-      const simulacionExitosa = true;
-
-      if (simulacionExitosa) {
-        setLoading(false);
-        // OPCIÓN 1: Usuario nuevo
-        navigate("/registro");
-
-        // OPCIÓN 2: Usuario ya registrado
-        //  navigate("/tutorial");
-      } else {
-        setLoading(false);
-        message.error("No se pudo iniciar sesión. Inténtalo de nuevo.");
-      }
+      setLoading(false);
+      navigate("/registro");
     }, 2000);
   };
 
@@ -66,7 +55,6 @@ export default function Login() {
           {loading ? "Verificando..." : "Continuar con Google"}
         </Button>
 
-        {/* UBICACIÓN ACTUALIZADA: Bajo el botón */}
         <div className="login-terms-wrapper">
           <Checkbox
             checked={accepted}
