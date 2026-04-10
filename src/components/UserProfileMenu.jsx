@@ -17,19 +17,16 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
   const [currentUsername, setCurrentUsername] = useState(userFromLogin);
   const [tempUsername, setTempUsername] = useState(userFromLogin);
 
-  // Estados para XP y Nivel
   const [userXP, setUserXP] = useState(0);
   const [reportCount, setReportCount] = useState(0);
 
   useEffect(() => {
     setCurrentUsername(userFromLogin);
     setTempUsername(userFromLogin);
-    // Cargar progreso del usuario
     setUserXP(parseInt(localStorage.getItem("user_xp") || "0"));
     setReportCount(parseInt(localStorage.getItem("user_reports_count") || "0"));
   }, [userFromLogin]);
 
-  // Lógica de Formateo XP (estilo Instagram 1k, 10k)
   const formatXP = (xp) => {
     if (xp >= 1000) {
       return (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k";
@@ -37,7 +34,6 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
     return xp.toString();
   };
 
-  // Lógica de Niveles
   const getLevelInfo = (count) => {
     if (count <= 100)
       return { nivel: 1, rango: "Observador", next: 100, color: "#ff4e4e" };
@@ -146,15 +142,26 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
         <Input
           placeholder="@usuario"
           value={tempUsername}
+          maxLength={20}
           className="minimal-input"
-          onChange={(e) =>
-            setTempUsername(e.target.value.toLowerCase().replace(/\s/g, ""))
-          }
+          onChange={(e) => {
+            const val = e.target.value.toLowerCase().replace(/\s/g, "");
+            if (usernameRegex.test(val)) setTempUsername(val);
+          }}
           status={!isUsernameValid && tempUsername.length > 0 ? "error" : ""}
         />
-        <p className="hint">
-          Solo letras, números, ( . _ - ). Espera de 7 días.
-        </p>
+        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
+          • Usa de 3-20 caracteres
+        </span>
+        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
+          • Letras o números.
+        </span>
+        <span className="setup-hint" style={{ color: !isUsernameValid && tempUsername.length > 0 ? '#ff4d4f' : '#8c8c8c' }}>
+          • Guion bajo, medio o punto.
+        </span>
+        <span className="setup-hint" style={{ color: '#a4b0be', marginTop: '4px' }}>
+          No podrás cambiarlo durante 7 días.
+        </span>
       </div>
       <Divider />
       <div

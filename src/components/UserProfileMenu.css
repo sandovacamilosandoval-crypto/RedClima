@@ -98,9 +98,11 @@
 }
 
 .hint {
-  font-size: 11px;
-  color: #a4b0be;
-  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-top: 8px;
+  display: block;
+  margin-left: 5px;
 }
 
 .dual-buttons-container {
