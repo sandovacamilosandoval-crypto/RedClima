@@ -130,12 +130,12 @@ function MapPage() {
     });
     setEnviando(false);
 
+    setIsModalOpen(false);
+    setConfirmData(null);
     if (error) {
       message.error(error.message);
       return;
     }
-    setIsModalOpen(false);
-    setConfirmData(null);
     setAhora(Date.now());
     setReporteActivoHasta(new Date(data.expira_en).getTime());
     setRecarga((r) => r + 1);
