@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Input, Select, message, Divider, Progress } from "antd";
+import { Button, Input, Select, message, Divider, Progress, Modal, Spin } from "antd";
 import {
   UserOutlined,
   HistoryOutlined,
@@ -7,16 +7,20 @@ import {
   LogoutOutlined,
   ArrowLeftOutlined,
   RightOutlined,
-  StarFilled,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/icono.png";
 import {
+  CLIMA_POR_ID,
   USERNAME_CHARS,
   DIAS_BLOQUEO_USERNAME,
   normalizarUsername,
   esUsernameValido,
 } from "../constants/clima";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
+import { formatearFecha } from "../lib/formato";
 import "./UserProfileMenu.css";
 
 const NIVELES = [
@@ -31,54 +35,104 @@ const getLevelInfo = (count) =>
 const formatXP = (xp) =>
   xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(xp);
 
-const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
+const UserProfileMenu = ({ onCancel }) => {
   const navigate = useNavigate();
+  const { perfil, refrescarPerfil, cerrarSesion } = useAuth();
+
   const [view, setView] = useState("HUB");
-  const [currentUsername, setCurrentUsername] = useState(userFromLogin);
-  const [tempUsername, setTempUsername] = useState(userFromLogin);
+  const [tempUsername, setTempUsername] = useState(perfil?.username ?? "");
+  const [guardando, setGuardando] = useState(false);
+  // El menú se monta cada vez que se abre, así que esta hora siempre es actual
+  const [ahora] = useState(() => Date.now());
 
-  // Se leen al montar; MapPage desmonta el menú al cerrarlo, así que siempre están frescos
-  const [userXP] = useState(() => parseInt(localStorage.getItem("user_xp") || "0", 10));
-  const [reportCount] = useState(() =>
-    parseInt(localStorage.getItem("user_reports_count") || "0", 10),
-  );
+  const [historial, setHistorial] = useState(null);
 
-  const level = getLevelInfo(reportCount);
-  const percent = Math.min((reportCount / level.next) * 100, 100);
+  const [asunto, setAsunto] = useState();
+  const [mensaje, setMensaje] = useState("");
+  const [enviandoSoporte, setEnviandoSoporte] = useState(false);
 
-  const [lastChangeDate] = useState(() => {
-    const savedDate = localStorage.getItem("lastChangeDate");
-    return savedDate ? new Date(savedDate) : new Date();
-  });
+  if (!perfil) return null;
+
+  const level = getLevelInfo(perfil.total_reportes);
+  const percent = Math.min((perfil.total_reportes / level.next) * 100, 100);
 
   const isUsernameValid = esUsernameValido(tempUsername);
   const mostrarError = !isUsernameValid && tempUsername.length > 0;
-
-  const diffDays = Math.floor(
-    Math.abs(new Date() - lastChangeDate) / (1000 * 60 * 60 * 24),
-  );
+  const diffDays = Math.floor((ahora - new Date(perfil.username_cambiado_en).getTime()) / 86400000);
   const diasRestantes = DIAS_BLOQUEO_USERNAME - diffDays;
   const isButtonDisabled =
-    !isUsernameValid || tempUsername === currentUsername || diasRestantes > 0;
+    !isUsernameValid || tempUsername === perfil.username || diasRestantes > 0;
 
-  const handleLogout = () => {
-    // TODO: cuando exista autenticación real, cerrar también la sesión en el servidor
-    ["username", "lastChangeDate"].forEach((k) => localStorage.removeItem(k));
-    message.info("Sesión cerrada");
+  const salir = async () => {
+    await cerrarSesion();
     onCancel?.();
     navigate("/", { replace: true });
   };
 
-  const handleSave = () => {
-    if (diasRestantes > 0 && tempUsername !== currentUsername) {
-      message.error(`¡Espera ${diasRestantes} días más para cambiar tu nombre!`);
-    } else {
-      localStorage.setItem("username", tempUsername);
-      localStorage.setItem("lastChangeDate", new Date().toISOString());
-      setCurrentUsername(tempUsername);
-      message.success("Nombre actualizado");
-      setView("HUB");
+  const handleSave = async () => {
+    setGuardando(true);
+    const { error } = await supabase.rpc("cambiar_username", { p_username: tempUsername });
+    setGuardando(false);
+    if (error) {
+      message.error(error.message);
+      return;
     }
+    await refrescarPerfil();
+    message.success("Nombre actualizado");
+    setView("HUB");
+  };
+
+  const abrirHistorial = async () => {
+    setView("HISTORY");
+    setHistorial(null);
+    const { data, error } = await supabase.rpc("mis_reportes", { p_limite: 50 });
+    if (error) {
+      message.error("No pudimos cargar tu historial");
+      setHistorial([]);
+    } else {
+      setHistorial(data);
+    }
+  };
+
+  const enviarSoporte = async () => {
+    if (!asunto || mensaje.trim().length < 5) {
+      message.warning("Elige un asunto y escribe al menos 5 caracteres");
+      return;
+    }
+    setEnviandoSoporte(true);
+    const { error } = await supabase
+      .from("mensajes_soporte")
+      .insert({ asunto, mensaje: mensaje.trim() });
+    setEnviandoSoporte(false);
+    if (error) {
+      message.error("No pudimos enviar tu mensaje. Inténtalo de nuevo.");
+      return;
+    }
+    message.success("¡Gracias! Recibimos tu mensaje");
+    setAsunto(undefined);
+    setMensaje("");
+    setView("HUB");
+  };
+
+  const confirmarBorrarCuenta = () => {
+    Modal.confirm({
+      title: "¿Borrar tu cuenta?",
+      content:
+        "Se eliminarán tu perfil, tus reportes y tus mensajes de forma permanente. Esta acción no se puede deshacer.",
+      okText: "Sí, borrar todo",
+      okButtonProps: { danger: true },
+      cancelText: "Cancelar",
+      centered: true,
+      onOk: async () => {
+        const { error } = await supabase.rpc("borrar_mi_cuenta");
+        if (error) {
+          message.error("No pudimos borrar tu cuenta. Escríbenos a soporte.");
+          return;
+        }
+        message.success("Tu cuenta y tus datos fueron eliminados");
+        await salir();
+      },
+    });
   };
 
   const renderHub = () => (
@@ -88,7 +142,7 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
           <img src={logo} alt="Logo" className="logo-img" />
         </div>
         <div className="user-info-mini">
-          <h3>@{currentUsername}</h3>
+          <h3>@{perfil.username}</h3>
           <span className="badge-rango" style={{ color: level.color }}>
             {level.rango} (Niv. {level.nivel})
           </span>
@@ -97,15 +151,17 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
 
       <div className="xp-section">
         <div className="xp-labels">
-          <span>{formatXP(userXP)} XP</span>
-          <span>Siguiente Nivel: {level.next} reportes</span>
+          <span>{formatXP(perfil.xp)} XP</span>
+          <span>
+            {perfil.total_reportes} / {level.next} reportes
+          </span>
         </div>
         <Progress
           percent={percent}
           showInfo={false}
           strokeColor={level.color}
-          trailColor="#f1f2f6"
-          strokeWidth={10}
+          railColor="#f1f2f6"
+          size={{ height: 10 }}
         />
       </div>
 
@@ -116,7 +172,7 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
           </div>
           <RightOutlined className="arrow-icon" />
         </div>
-        <div className="menu-item" onClick={() => setView("HISTORY")}>
+        <div className="menu-item" onClick={abrirHistorial}>
           <div className="item-left">
             <HistoryOutlined /> <span>Mis Reportes</span>
           </div>
@@ -167,9 +223,14 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
         </span>
       </div>
       <Divider />
-      <div className="menu-item logout-item-inline" onClick={handleLogout}>
+      <div className="menu-item logout-item-inline" onClick={salir}>
         <div className="item-left">
           <LogoutOutlined /> <span>Cerrar Sesión</span>
+        </div>
+      </div>
+      <div className="menu-item logout-item-inline" onClick={confirmarBorrarCuenta}>
+        <div className="item-left" style={{ color: "#ff4d4f" }}>
+          <DeleteOutlined /> <span>Borrar mi cuenta y mis datos</span>
         </div>
       </div>
       <div className="dual-buttons-container">
@@ -184,6 +245,7 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
           type="primary"
           className="btn-action-azul"
           onClick={handleSave}
+          loading={guardando}
           disabled={isButtonDisabled}
         >
           Guardar
@@ -192,46 +254,48 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
     </div>
   );
 
-  const renderHistory = () => {
-    const historialReal = JSON.parse(
-      localStorage.getItem("historial_reportes") || "[]",
-    );
-    return (
-      <div className="menu-subview-container">
-        <h2 className="subview-title centered">Mis Reportes</h2>
-        <div className="history-table">
-          <div className="h-row h-head">
-            <span>Coords</span>
-            <span>Clima</span>
-            <span>Fecha</span>
-          </div>
-          <div className="h-scroll">
-            {historialReal.length === 0 && (
-              <p style={{ textAlign: "center", color: "#8c8c8c", margin: "16px 0" }}>
-                Aún no tienes reportes.
-              </p>
-            )}
-            {historialReal.map((item) => (
-              <div className="h-row" key={item.id}>
-                <span className="truncate-text">{item.ubicacion}</span>
-                <span>{item.tipo}</span>
-                <span>{item.fecha}</span>
-              </div>
-            ))}
-          </div>
+  const renderHistory = () => (
+    <div className="menu-subview-container">
+      <h2 className="subview-title centered">Mis Reportes</h2>
+      <div className="history-table">
+        <div className="h-row h-head">
+          <span>Coords</span>
+          <span>Clima</span>
+          <span>Fecha</span>
         </div>
-        <div className="menu-footer-centered">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            className="btn-volver-rojo"
-            onClick={() => setView("HUB")}
-          >
-            Volver
-          </Button>
+        <div className="h-scroll">
+          {historial === null && (
+            <div style={{ textAlign: "center", margin: "16px 0" }}>
+              <Spin />
+            </div>
+          )}
+          {historial?.length === 0 && (
+            <p style={{ textAlign: "center", color: "#8c8c8c", margin: "16px 0" }}>
+              Aún no tienes reportes.
+            </p>
+          )}
+          {historial?.map((item) => (
+            <div className="h-row" key={item.id}>
+              <span className="truncate-text">
+                {item.lat.toFixed(3)}, {item.lng.toFixed(3)}
+              </span>
+              <span>{CLIMA_POR_ID[item.tipo]?.label ?? item.tipo}</span>
+              <span>{formatearFecha(item.creado_en)}</span>
+            </div>
+          ))}
         </div>
       </div>
-    );
-  };
+      <div className="menu-footer-centered">
+        <Button
+          icon={<ArrowLeftOutlined />}
+          className="btn-volver-rojo"
+          onClick={() => setView("HUB")}
+        >
+          Volver
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderSupport = () => (
     <div className="menu-subview-container">
@@ -240,13 +304,20 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
         placeholder="Asunto"
         className="minimal-select"
         style={{ width: "100%" }}
-      >
-        <Select.Option value="error">Error</Select.Option>
-        <Select.Option value="sugerencia">Sugerencia</Select.Option>
-      </Select>
+        value={asunto}
+        onChange={setAsunto}
+        options={[
+          { value: "error", label: "Reportar un error" },
+          { value: "sugerencia", label: "Sugerencia" },
+          { value: "otro", label: "Otro" },
+        ]}
+      />
       <Input.TextArea
         rows={4}
+        maxLength={2000}
         placeholder="Dinos qué sucede..."
+        value={mensaje}
+        onChange={(e) => setMensaje(e.target.value)}
         style={{ marginTop: "15px", borderRadius: "12px" }}
       />
       <div className="dual-buttons-container">
@@ -260,7 +331,8 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
         <Button
           type="primary"
           className="btn-action-azul"
-          onClick={() => message.success("Enviado")}
+          loading={enviandoSoporte}
+          onClick={enviarSoporte}
         >
           Enviar
         </Button>

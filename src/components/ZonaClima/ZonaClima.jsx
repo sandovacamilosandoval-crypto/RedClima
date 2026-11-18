@@ -1,21 +1,22 @@
 import React from 'react';
-import { Circle, Marker } from 'react-leaflet';
+import { Circle, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { CLIMA_POR_ID, RADIO_ZONA_INICIAL } from '../../constants/clima';
+import { CLIMA_POR_ID } from '../../constants/clima';
+import { haceCuanto } from '../../lib/formato';
 import './ZonaClima.css';
 
-const ZonaClima = ({ reporte }) => {
-  if (!reporte || !reporte.tipo || !reporte.coords) return null;
+// Una zona agregada que viene de la función zonas_cercanas de Supabase
+const ZonaClima = ({ zona, ahora }) => {
+  if (!zona) return null;
 
-  const current = CLIMA_POR_ID[reporte.tipo] || CLIMA_POR_ID.soleado;
-  const radioMetros = reporte.size || RADIO_ZONA_INICIAL;
+  const clima = CLIMA_POR_ID[zona.tipo] || CLIMA_POR_ID.soleado;
+  const posicion = [zona.lat, zona.lng];
 
-  // Icono animado en el centro de la zona
-  const customIcon = L.divIcon({
+  const icono = L.divIcon({
     className: "clima-icon-wrapper",
     html: `
       <div class="zona-clima-container">
-        <img src="${current.img}" alt="${current.label}" class="clima-icon-animated ${current.anim}" />
+        <img src="${clima.img}" alt="${clima.label}" class="clima-icon-animated ${clima.anim}" />
       </div>
     `,
     iconSize: [40, 40],
@@ -25,21 +26,26 @@ const ZonaClima = ({ reporte }) => {
   return (
     <>
       <Circle
-        center={[reporte.coords.lat, reporte.coords.lng]}
-        radius={radioMetros}
+        center={posicion}
+        radius={zona.radio_m}
         pathOptions={{
-          fillColor: current.color,
+          fillColor: clima.color,
           color: "white",
           weight: 1,
-          fillOpacity: 0.5,
+          // Más confianza = color más intenso
+          fillOpacity: 0.25 + 0.35 * (zona.confianza ?? 1),
         }}
         className="animacion-pulso"
       />
-      <Marker
-        position={[reporte.coords.lat, reporte.coords.lng]}
-        icon={customIcon}
-        interactive={false}
-      />
+      <Marker position={posicion} icon={icono}>
+        <Popup>
+          <strong>{clima.label}</strong>
+          <br />
+          {zona.reportes} {zona.reportes === 1 ? "reporte" : "reportes"} · {Math.round((zona.confianza ?? 1) * 100)}% de acuerdo
+          <br />
+          Actualizado {haceCuanto(zona.actualizado_en, ahora)}
+        </Popup>
+      </Marker>
     </>
   );
 };

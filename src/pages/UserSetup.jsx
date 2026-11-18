@@ -1,35 +1,40 @@
 import React, { useState } from "react";
 import { Button, Input, message } from "antd";
 import { UserOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import {
   USERNAME_CHARS,
   DIAS_BLOQUEO_USERNAME,
   normalizarUsername,
   esUsernameValido,
 } from "../constants/clima";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import "./UserSetup.css";
 
-export default function UserSetup({ onComplete }) {
+export default function UserSetup() {
+  const navigate = useNavigate();
+  const { refrescarPerfil } = useAuth();
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
   const isUsernameValid = esUsernameValido(username);
   const mostrarError = !isUsernameValid && username.length > 0;
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!isUsernameValid) {
       message.error("Revisa las reglas del nombre de usuario");
       return;
     }
     setLoading(true);
-
-    // TODO: reemplazar por la llamada real al backend (verificar que el nombre sea único)
-    setTimeout(() => {
-      localStorage.setItem("username", username);
-      localStorage.setItem("lastChangeDate", new Date().toISOString());
+    const { error } = await supabase.rpc("crear_perfil", { p_username: username });
+    if (error) {
       setLoading(false);
-      onComplete();
-    }, 1500);
+      message.error(error.message);
+      return;
+    }
+    await refrescarPerfil();
+    navigate("/tutorial", { replace: true });
   };
 
   return (

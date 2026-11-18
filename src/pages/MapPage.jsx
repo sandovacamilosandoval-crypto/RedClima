@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Modal, message, Spin, Button } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
@@ -10,13 +10,13 @@ import ConfirmReport from "../components/ConfirmReport/ConfirmReport";
 import UserProfileMenu from "../components/UserProfileMenu";
 import {
   CLIMA_POR_ID,
-  RADIO_ZONA_INICIAL,
-  EXPANSION_ZONA,
-  DURACION_REPORTE_MS,
-  XP_POR_REPORTE,
   UBICACION_DEFECTO,
+  RADIO_BUSQUEDA_M,
+  REFRESCO_ZONAS_MS,
   distanciaMetros,
 } from "../constants/clima";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import "./MapPage.css";
 
 const { Content } = Layout;
@@ -29,128 +29,135 @@ function RecenterMap({ coords }) {
   return null;
 }
 
-// Guarda el reporte en el historial local y suma XP / contador al perfil.
-// TODO: cuando exista backend, esto lo debe registrar el servidor.
-function registrarEnHistorial(tipo, coords) {
-  const historial = JSON.parse(localStorage.getItem("historial_reportes") || "[]");
-  historial.unshift({
-    id: Date.now(),
-    tipo: CLIMA_POR_ID[tipo]?.label || tipo,
-    ubicacion: `${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)}`,
-    fecha: new Date().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }),
-  });
-  localStorage.setItem("historial_reportes", JSON.stringify(historial.slice(0, 50)));
-
-  const count = parseInt(localStorage.getItem("user_reports_count") || "0", 10) + 1;
-  const xp = parseInt(localStorage.getItem("user_xp") || "0", 10) + XP_POR_REPORTE;
-  localStorage.setItem("user_reports_count", String(count));
-  localStorage.setItem("user_xp", String(xp));
-}
+const OPCIONES_GPS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
 
 function MapPage() {
+  const { refrescarPerfil } = useAuth();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [nombreUsuario, setNombreUsuario] = useState(
-    () => localStorage.getItem("username") || "Usuario_RedClima"
+  const [enviando, setEnviando] = useState(false);
+
+  // GPS: 'buscando' | 'ok' | 'error'
+  const [gpsEstado, setGpsEstado] = useState(() =>
+    navigator.geolocation ? "buscando" : "error"
   );
+  const [ubicacion, setUbicacion] = useState(null);
 
-  const [reportes, setReportes] = useState([]);
-  const [userLocation, setUserLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [hasReported, setHasReported] = useState(false);
-  const timersRef = useRef({});
+  // Hasta cuándo está desbloqueado el mapa (vence con tu último reporte)
+  const [reporteActivoHasta, setReporteActivoHasta] = useState(null);
+  const [zonas, setZonas] = useState([]);
+  const [recarga, setRecarga] = useState(0);
+  const [ahora, setAhora] = useState(() => Date.now());
 
+  const desbloqueado = reporteActivoHasta !== null && reporteActivoHasta > ahora;
+
+  // Reloj para vencer reportes y mostrar "hace X min"
   useEffect(() => {
-    const usarDefecto = () => {
-      message.error("No pudimos obtener tu ubicación. Usando Bogotá por defecto.");
-      setUserLocation(UBICACION_DEFECTO);
-      setLoading(false);
-    };
+    const id = setInterval(() => setAhora(Date.now()), 30 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
-    if (!navigator.geolocation) {
-      usarDefecto();
-      return;
-    }
-
+  const pedirUbicacion = useCallback(() => {
+    if (!navigator.geolocation) return; // el estado inicial ya es "error"
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLoading(false);
+        setUbicacion({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          precision: pos.coords.accuracy,
+        });
+        setGpsEstado("ok");
       },
-      usarDefecto,
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      () => setGpsEstado("error"),
+      OPCIONES_GPS
     );
   }, []);
 
-  // Limpia los temporizadores pendientes al salir de la página
   useEffect(() => {
-    const timers = timersRef.current;
-    return () => Object.values(timers).forEach(clearTimeout);
+    pedirUbicacion();
+  }, [pedirUbicacion]);
+
+  // ¿Tengo un reporte vigente? (desbloquea el mapa tras recargar la página)
+  useEffect(() => {
+    let activo = true;
+    supabase
+      .from("reportes")
+      .select("expira_en")
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (activo && data) setReporteActivoHasta(new Date(data.expira_en).getTime());
+      });
+    return () => {
+      activo = false;
+    };
   }, []);
 
-  const handleOpenMenu = () => {
-    setNombreUsuario(localStorage.getItem("username") || "Usuario_RedClima");
-    setIsMenuOpen(true);
-  };
-
-  const generarNuevaZona = (tipoClima, coordenadas, idExistente = null, tamaño = RADIO_ZONA_INICIAL) => {
-    const id = idExistente || Date.now();
-    const nuevoReporte = {
-      id,
-      tipo: tipoClima,
-      coords: { lat: coordenadas.lat, lng: coordenadas.lng },
-      size: tamaño,
+  // Zonas compartidas de toda la comunidad
+  const lat = ubicacion?.lat;
+  const lng = ubicacion?.lng;
+  useEffect(() => {
+    if (lat === undefined || !desbloqueado) return;
+    let activo = true;
+    const cargar = async () => {
+      const { data, error } = await supabase.rpc("zonas_cercanas", {
+        p_lat: lat,
+        p_lng: lng,
+        p_radio_m: RADIO_BUSQUEDA_M,
+      });
+      if (!activo) return;
+      if (error) message.error("No pudimos cargar las zonas. Revisa tu conexión.");
+      else setZonas(data);
     };
+    cargar();
+    const id = setInterval(cargar, REFRESCO_ZONAS_MS);
+    return () => {
+      activo = false;
+      clearInterval(id);
+    };
+  }, [lat, lng, desbloqueado, recarga]);
 
-    if (timersRef.current[id]) clearTimeout(timersRef.current[id]);
-    if (idExistente) {
-      setReportes((prev) => prev.map((rep) => (rep.id === id ? nuevoReporte : rep)));
-    } else {
-      setReportes((prev) => [...prev, nuevoReporte]);
+  const enviarReporte = async (clima) => {
+    setEnviando(true);
+    const { data, error } = await supabase.rpc("crear_reporte", {
+      p_tipo: clima.id,
+      p_lat: ubicacion.lat,
+      p_lng: ubicacion.lng,
+      p_precision_m: Math.round(ubicacion.precision),
+    });
+    setEnviando(false);
+
+    if (error) {
+      message.error(error.message);
+      return;
     }
-
-    registrarEnHistorial(tipoClima, coordenadas);
     setIsModalOpen(false);
     setConfirmData(null);
-    setHasReported(true);
-
-    // El reporte caduca: el clima cambia, la información vieja no sirve
-    timersRef.current[id] = setTimeout(() => {
-      setReportes((prev) => prev.filter((rep) => rep.id !== id));
-      delete timersRef.current[id];
-    }, DURACION_REPORTE_MS);
+    setAhora(Date.now());
+    setReporteActivoHasta(new Date(data.expira_en).getTime());
+    setRecarga((r) => r + 1);
+    refrescarPerfil();
+    message.success(`¡Gracias! Reportaste ${clima.label.toLowerCase()} (+10 XP)`);
   };
 
   const handleReportSelection = (clima) => {
-    if (!userLocation) return;
-
-    // ¿El usuario está dentro de una zona ya reportada?
-    const reporteCercano = reportes.find(
-      (r) => distanciaMetros(r.coords, userLocation) <= (r.size || RADIO_ZONA_INICIAL)
-    );
-
-    if (reporteCercano) {
-      setConfirmData({ clima, reporte: reporteCercano });
+    if (!ubicacion) {
+      message.error("Necesitamos tu ubicación para reportar.");
+      return;
+    }
+    const zonaActual = zonas.find((z) => distanciaMetros(z, ubicacion) <= z.radio_m);
+    if (zonaActual) {
+      setConfirmData({ clima, zona: zonaActual });
       setIsModalOpen(false);
     } else {
-      generarNuevaZona(clima.id, userLocation);
-      message.success(`Reporte de ${clima.label} creado`);
+      enviarReporte(clima);
     }
   };
 
-  const handleConfirm = () => {
-    const { clima, reporte } = confirmData;
-    if (reporte.tipo === clima.id) {
-      generarNuevaZona(clima.id, reporte.coords, reporte.id, (reporte.size || RADIO_ZONA_INICIAL) + EXPANSION_ZONA);
-      message.success("¡Zona de clima expandida!");
-    } else {
-      generarNuevaZona(clima.id, userLocation, reporte.id, RADIO_ZONA_INICIAL);
-      message.warning("Clima actualizado en esta zona");
-    }
-  };
-
-  if (loading) {
+  if (gpsEstado === "buscando" && !ubicacion) {
     return (
       <div className="loading-screen">
         <Spin size="large" />
@@ -159,68 +166,99 @@ function MapPage() {
     );
   }
 
+  const centro = ubicacion || UBICACION_DEFECTO;
+
   return (
     <Layout className="map-layout">
       <Button
         className="btn-hamburguesa"
         shape="circle"
         icon={<MenuOutlined />}
-        onClick={handleOpenMenu}
+        onClick={() => setIsMenuOpen(true)}
         aria-label="Abrir menú"
       />
 
       <Content className="main-content">
-        <div className={`map-wrapper ${!hasReported ? "is-locked" : ""}`}>
+        <div className={`map-wrapper ${!desbloqueado ? "is-locked" : ""}`}>
           <MapContainer
-            center={[userLocation.lat, userLocation.lng]}
+            center={[centro.lat, centro.lng]}
             zoom={15}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
+            {/* CARTO ahora exige API key; OSM es libre con atribución.
+                Para producción con mucho tráfico conviene un proveedor con plan (MapTiler, Stadia...). */}
             <TileLayer
-              // CARTO (basemaps.cartocdn.com) ahora exige API key; OSM es libre con atribución.
-              // Para producción con mucho tráfico conviene un proveedor con plan (MapTiler, Stadia...).
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               maxZoom={19}
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
-            <RecenterMap coords={userLocation} />
-            {reportes.map((rep) => (
-              <ZonaClima key={rep.id} reporte={rep} />
-            ))}
+            <RecenterMap coords={ubicacion} />
+            {desbloqueado &&
+              zonas.map((z) => (
+                <ZonaClima key={`${z.lat},${z.lng},${z.tipo}`} zona={z} ahora={ahora} />
+              ))}
           </MapContainer>
 
-          {!hasReported && (
+          {!desbloqueado && (
             <div className="lock-overlay">
               <div className="lock-card">
-                <span className="lock-emoji">👀</span>
-                <h3>¿Quieres ver el mapa?</h3>
-                <p>¡Comparte el clima actual en tu zona para desbloquear la vista!</p>
-                <Button type="primary" size="large" className="btn-unlock" onClick={() => setIsModalOpen(true)}>
-                  ¡Reportar ahora!
-                </Button>
+                {gpsEstado === "error" ? (
+                  <>
+                    <span className="lock-emoji">📍</span>
+                    <h3>Activa tu ubicación</h3>
+                    <p>
+                      Para reportar el clima necesitamos saber dónde estás. Permite el acceso a
+                      la ubicación en tu navegador e inténtalo de nuevo.
+                    </p>
+                    <Button
+                      type="primary"
+                      size="large"
+                      className="btn-unlock"
+                      onClick={() => {
+                        setGpsEstado("buscando");
+                        pedirUbicacion();
+                      }}
+                    >
+                      Reintentar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="lock-emoji">👀</span>
+                    <h3>¿Quieres ver el mapa?</h3>
+                    <p>¡Comparte el clima actual en tu zona para desbloquear la vista durante 1 hora!</p>
+                    <Button type="primary" size="large" className="btn-unlock" onClick={() => setIsModalOpen(true)}>
+                      ¡Reportar ahora!
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
         </div>
       </Content>
 
-      {hasReported && <ReportButton onClick={() => setIsModalOpen(true)} />}
+      {desbloqueado && <ReportButton onClick={() => setIsModalOpen(true)} />}
 
       <Modal open={isMenuOpen} onCancel={() => setIsMenuOpen(false)} footer={null} centered width={350} closable={false} destroyOnHidden>
-        <UserProfileMenu userFromLogin={nombreUsuario} onCancel={() => setIsMenuOpen(false)} />
+        <UserProfileMenu onCancel={() => setIsMenuOpen(false)} />
       </Modal>
 
       <Modal open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} centered width={350} closable={false}>
-        <ClimateMenu onSelect={handleReportSelection} onCancel={() => setIsModalOpen(false)} />
+        <Spin spinning={enviando}>
+          <ClimateMenu onSelect={handleReportSelection} onCancel={() => setIsModalOpen(false)} />
+        </Spin>
       </Modal>
 
       <Modal open={!!confirmData} onCancel={() => setConfirmData(null)} footer={null} centered width={320} closable={false}>
         {confirmData && (
           <ConfirmReport
             climaLabel={confirmData.clima.label}
+            zonaLabel={CLIMA_POR_ID[confirmData.zona.tipo]?.label}
+            loading={enviando}
             onCancel={() => setConfirmData(null)}
-            onConfirm={handleConfirm}
+            onConfirm={() => enviarReporte(confirmData.clima)}
           />
         )}
       </Modal>

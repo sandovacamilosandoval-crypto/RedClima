@@ -1,26 +1,36 @@
 import React, { useState } from "react";
 import { Button, Checkbox, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import logo from "../components/assets/icono.png";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { session, perfil } = useAuth();
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
-  const handleGoogleLogin = () => {
+  // Al volver de Google ya hay sesión: enviar a donde corresponda
+  if (session && perfil) return <Navigate to="/mapa" replace />;
+  if (session && perfil === null) return <Navigate to="/registro" replace />;
+
+  const handleGoogleLogin = async () => {
     if (!accepted) {
-      message.warning("Debes aceptar los términos y condiciones");
+      message.warning("Debes aceptar los Términos y la Política de Privacidad");
       return;
     }
-
     setLoading(true);
-
-    setTimeout(() => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/login` },
+    });
+    if (error) {
       setLoading(false);
-      navigate("/registro");
-    }, 2000);
+      message.error("No pudimos conectar con Google. Inténtalo de nuevo.");
+    }
+    // Si no hay error, el navegador se redirige a Google
   };
 
   return (
@@ -52,7 +62,7 @@ export default function Login() {
           }
           onClick={handleGoogleLogin}
         >
-          {loading ? "Verificando..." : "Continuar con Google"}
+          {loading ? "Conectando..." : "Continuar con Google"}
         </Button>
 
         <div className="login-terms-wrapper">
@@ -65,7 +75,7 @@ export default function Login() {
             <span
               className="link-text"
               onClick={(e) => {
-                e.stopPropagation();
+                e.preventDefault();
                 navigate("/terminos");
               }}
             >
@@ -75,11 +85,11 @@ export default function Login() {
             <span
               className="link-text"
               onClick={(e) => {
-                e.stopPropagation();
+                e.preventDefault();
                 navigate("/privacidad");
               }}
             >
-              Privacidad
+              Política de Privacidad
             </span>
             .
           </Checkbox>
