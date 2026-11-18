@@ -51,18 +51,3 @@
   50% { transform: translate(-1px, -1px); filter: brightness(1.4); }
   100% { transform: translate(1px, 1px); }
 }
-
-/* --- Ajustes Globales de Mapa --- */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  background-color: #f0f0f0;
-}
-
-.main-content {
-  height: 100vh;
-  width: 100vw;
-  padding: 0 !important;
-  margin: 0 !important;
-  z-index: 1;
-}

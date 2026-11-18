@@ -1,6 +1,8 @@
 import React from 'react';
 import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
+import './Landing.css';
 
 export default function Privacidad() {
   const navigate = useNavigate();

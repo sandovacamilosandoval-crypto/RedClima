@@ -17,6 +17,9 @@
   width: 100%;
   max-width: 400px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   animation: fadeIn 0.8s ease-out;
 }
 
@@ -24,7 +27,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: -30px;
+  margin-bottom: 0;
 }
 
 .login-logo-small {
@@ -36,7 +39,7 @@
 
 .login-brand {
   font-size: 1.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #000000;
   margin: 0;
   letter-spacing: -1px;
@@ -92,6 +95,7 @@
 /* --- Botón de Google --- */
 .btn-google {
   width: 100%;
+  padding: 0 40px !important;
   height: 45px !important;
   background-color: white !important;
   color: #000000 !important;
@@ -119,13 +123,6 @@
   border-color: #e2e8f0 !important;
   opacity: 0.7;
   cursor: not-allowed !important;
-}
-
-.login-footer {
-  margin-top: 20px;
-  font-size: 0.8rem;
-  color: #a0aec0;
-  line-height: 1.5;
 }
 
 @keyframes fadeIn {

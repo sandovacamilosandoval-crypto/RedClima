@@ -4,24 +4,13 @@ import { useNavigate } from 'react-router-dom';
 
 import './Onboarding.css';
 
-// Activos
 import logoApp from '../components/assets/icono.png';
 import gpsImg from '../components/assets/gps.png';
-import soleado from '../components/assets/soleado.png';
-import nublado from '../components/assets/nublado.png';
-import lluvia from '../components/assets/lluvia.png';
-import tormenta from '../components/assets/tormenta.png';
+import { CLIMAS } from '../constants/clima';
 
 export default function Onboarding() {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
-
-  const options = [
-    { id: 'soleado', label: 'Soleado', img: soleado },
-    { id: 'nublado', label: 'Nublado', img: nublado },
-    { id: 'lluvia', label: 'Lluvia', img: lluvia },
-    { id: 'tormenta', label: 'Tormenta', img: tormenta },
-  ];
 
   const steps = [
     {
@@ -34,7 +23,7 @@ export default function Onboarding() {
       text: "Los colores del mapa muestran el clima en cada zona.",
       media: (
         <div className="ob-grid-container">
-          {options.map((opt) => (
+          {CLIMAS.map((opt) => (
             <div key={opt.id} className={`ob-grid-item ${opt.id}`}>
               <img src={opt.img} alt={opt.label} />
               <span>{opt.label}</span>
@@ -63,7 +52,7 @@ export default function Onboarding() {
         {current === 1 && <div className="ob-media">{steps[current].media}</div>}
 
         <div className="ob-dots">
-          {[0, 1, 2].map((i) => (
+          {steps.map((_, i) => (
             <div key={i} className={`ob-dot ${i === current ? 'active' : ''}`} />
           ))}
         </div>
@@ -81,9 +70,9 @@ export default function Onboarding() {
           <Button 
             type="primary" 
             className="ob-btn-next"
-            onClick={() => current < 2 ? setCurrent(current + 1) : navigate('/mapa')}
+            onClick={() => (current < steps.length - 1 ? setCurrent(current + 1) : navigate('/mapa'))}
           >
-            {current === 2 ? "Comenzar" : "Siguiente"}
+            {current === steps.length - 1 ? "Comenzar" : "Siguiente"}
           </Button>
         </div>
       </div>

@@ -1,16 +1,36 @@
-# React + Vite
+# RedClima
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Mapa del clima **colaborativo y en tiempo real**: cada persona reporta el clima que ve
+en su ubicación (soleado, nublado, lluvia, tormenta) y el mapa se colorea por zonas.
+Para ver el mapa, primero debes aportar un reporte.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + Vite
+- Ant Design (UI)
+- Leaflet / react-leaflet (mapa, teselas de CARTO/OpenStreetMap)
+- React Router
 
-## React Compiler
+## Flujo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+`/` Landing → `/login` → `/registro` (nombre de usuario) → `/tutorial` → `/mapa`
 
-## Expanding the ESLint configuration
+## Scripts
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev      # servidor de desarrollo
+npm run lint     # ESLint
+npm run build    # build de producción
+```
+
+## Estructura
+
+- `src/pages/` — pantallas (una por ruta)
+- `src/components/` — piezas reutilizables del mapa y menús
+- `src/constants/clima.js` — tipos de clima, reglas de reportes y de usuario (fuente única)
+
+## Estado actual
+
+Prototipo de frontend: el login con Google es simulado y los reportes viven solo en el
+navegador (no se comparten entre usuarios todavía). Ver la sección de pendientes.

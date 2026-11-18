@@ -8,6 +8,15 @@ import ClimateMenu from "../components/ClimateMenu/ClimateMenu";
 import ZonaClima from "../components/ZonaClima/ZonaClima";
 import ConfirmReport from "../components/ConfirmReport/ConfirmReport";
 import UserProfileMenu from "../components/UserProfileMenu";
+import {
+  CLIMA_POR_ID,
+  RADIO_ZONA_INICIAL,
+  EXPANSION_ZONA,
+  DURACION_REPORTE_MS,
+  XP_POR_REPORTE,
+  UBICACION_DEFECTO,
+  distanciaMetros,
+} from "../constants/clima";
 import "./MapPage.css";
 
 const { Content } = Layout;
@@ -20,11 +29,31 @@ function RecenterMap({ coords }) {
   return null;
 }
 
+// Guarda el reporte en el historial local y suma XP / contador al perfil.
+// TODO: cuando exista backend, esto lo debe registrar el servidor.
+function registrarEnHistorial(tipo, coords) {
+  const historial = JSON.parse(localStorage.getItem("historial_reportes") || "[]");
+  historial.unshift({
+    id: Date.now(),
+    tipo: CLIMA_POR_ID[tipo]?.label || tipo,
+    ubicacion: `${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)}`,
+    fecha: new Date().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }),
+  });
+  localStorage.setItem("historial_reportes", JSON.stringify(historial.slice(0, 50)));
+
+  const count = parseInt(localStorage.getItem("user_reports_count") || "0", 10) + 1;
+  const xp = parseInt(localStorage.getItem("user_xp") || "0", 10) + XP_POR_REPORTE;
+  localStorage.setItem("user_reports_count", String(count));
+  localStorage.setItem("user_xp", String(xp));
+}
+
 function MapPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [nombreUsuario, setNombreUsuario] = useState("");
+  const [nombreUsuario, setNombreUsuario] = useState(
+    () => localStorage.getItem("username") || "Usuario_RedClima"
+  );
 
   const [reportes, setReportes] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
@@ -33,34 +62,45 @@ function MapPage() {
   const timersRef = useRef({});
 
   useEffect(() => {
-    const savedName = localStorage.getItem("username") || "Usuario_RedClima";
-    setNombreUsuario(savedName);
+    const usarDefecto = () => {
+      message.error("No pudimos obtener tu ubicación. Usando Bogotá por defecto.");
+      setUserLocation(UBICACION_DEFECTO);
+      setLoading(false);
+    };
+
+    if (!navigator.geolocation) {
+      usarDefecto();
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLoading(false);
       },
-      () => {
-        message.error("Error de ubicación. Usando Bogotá por defecto.");
-        setUserLocation({ lat: 4.6097, lng: -74.0817 });
-        setLoading(false);
-      }
+      usarDefecto,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
+  // Limpia los temporizadores pendientes al salir de la página
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
+
   const handleOpenMenu = () => {
-    const freshName = localStorage.getItem("username") || "Usuario_RedClima";
-    setNombreUsuario(freshName);
+    setNombreUsuario(localStorage.getItem("username") || "Usuario_RedClima");
     setIsMenuOpen(true);
   };
 
-  const generarNuevaZona = (tipoClima, coordenadas, idExistente = null, tamañoActual = 250) => {
+  const generarNuevaZona = (tipoClima, coordenadas, idExistente = null, tamaño = RADIO_ZONA_INICIAL) => {
     const id = idExistente || Date.now();
     const nuevoReporte = {
-      id, tipo: tipoClima,
+      id,
+      tipo: tipoClima,
       coords: { lat: coordenadas.lat, lng: coordenadas.lng },
-      size: tamañoActual
+      size: tamaño,
     };
 
     if (timersRef.current[id]) clearTimeout(timersRef.current[id]);
@@ -70,42 +110,43 @@ function MapPage() {
       setReportes((prev) => [...prev, nuevoReporte]);
     }
 
+    registrarEnHistorial(tipoClima, coordenadas);
     setIsModalOpen(false);
     setConfirmData(null);
     setHasReported(true);
 
+    // El reporte caduca: el clima cambia, la información vieja no sirve
     timersRef.current[id] = setTimeout(() => {
-      setReportes((prev) => {
-        const nuevosReportes = prev.filter((rep) => rep.id !== id);
-        if (nuevosReportes.length === 0) setHasReported(false);
-        return nuevosReportes;
-      });
+      setReportes((prev) => prev.filter((rep) => rep.id !== id));
       delete timersRef.current[id];
-    }, 1000000);
+    }, DURACION_REPORTE_MS);
   };
 
-  const handleReportSelection = (climaLabel) => {
-    const climaId = climaLabel.toLowerCase();
+  const handleReportSelection = (clima) => {
     if (!userLocation) return;
-    const MARGEN_DETECCION = 0.009;
-    const reporteCercano = reportes.find((r) => {
-      const dLat = r.coords.lat - userLocation.lat;
-      const dLng = r.coords.lng - userLocation.lng;
-      return Math.sqrt(dLat * dLat + dLng * dLng) < MARGEN_DETECCION;
-    });
+
+    // ¿El usuario está dentro de una zona ya reportada?
+    const reporteCercano = reportes.find(
+      (r) => distanciaMetros(r.coords, userLocation) <= (r.size || RADIO_ZONA_INICIAL)
+    );
 
     if (reporteCercano) {
-      setConfirmData({
-        label: climaLabel,
-        id: reporteCercano.id,
-        tipoAnterior: reporteCercano.tipo,
-        coordsAnteriores: reporteCercano.coords,
-        sizeAnterior: reporteCercano.size
-      });
+      setConfirmData({ clima, reporte: reporteCercano });
       setIsModalOpen(false);
     } else {
-      generarNuevaZona(climaId, userLocation);
-      message.success(`Reporte de ${climaLabel} creado`);
+      generarNuevaZona(clima.id, userLocation);
+      message.success(`Reporte de ${clima.label} creado`);
+    }
+  };
+
+  const handleConfirm = () => {
+    const { clima, reporte } = confirmData;
+    if (reporte.tipo === clima.id) {
+      generarNuevaZona(clima.id, reporte.coords, reporte.id, (reporte.size || RADIO_ZONA_INICIAL) + EXPANSION_ZONA);
+      message.success("¡Zona de clima expandida!");
+    } else {
+      generarNuevaZona(clima.id, userLocation, reporte.id, RADIO_ZONA_INICIAL);
+      message.warning("Clima actualizado en esta zona");
     }
   };
 
@@ -113,7 +154,7 @@ function MapPage() {
     return (
       <div className="loading-screen">
         <Spin size="large" />
-        <p>Sincronizando con satélites...</p>
+        <p>Obteniendo tu ubicación...</p>
       </div>
     );
   }
@@ -125,6 +166,7 @@ function MapPage() {
         shape="circle"
         icon={<MenuOutlined />}
         onClick={handleOpenMenu}
+        aria-label="Abrir menú"
       />
 
       <Content className="main-content">
@@ -136,8 +178,11 @@ function MapPage() {
             zoomControl={false}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; OpenStreetMap'
+              // CARTO (basemaps.cartocdn.com) ahora exige API key; OSM es libre con atribución.
+              // Para producción con mucho tráfico conviene un proveedor con plan (MapTiler, Stadia...).
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <RecenterMap coords={userLocation} />
             {reportes.map((rep) => (
@@ -162,7 +207,7 @@ function MapPage() {
 
       {hasReported && <ReportButton onClick={() => setIsModalOpen(true)} />}
 
-      <Modal open={isMenuOpen} onCancel={() => setIsMenuOpen(false)} footer={null} centered width={350} closable={false}>
+      <Modal open={isMenuOpen} onCancel={() => setIsMenuOpen(false)} footer={null} centered width={350} closable={false} destroyOnHidden>
         <UserProfileMenu userFromLogin={nombreUsuario} onCancel={() => setIsMenuOpen(false)} />
       </Modal>
 
@@ -173,18 +218,9 @@ function MapPage() {
       <Modal open={!!confirmData} onCancel={() => setConfirmData(null)} footer={null} centered width={320} closable={false}>
         {confirmData && (
           <ConfirmReport
-            climaLabel={confirmData.label}
+            climaLabel={confirmData.clima.label}
             onCancel={() => setConfirmData(null)}
-            onConfirm={() => {
-              const climaId = confirmData.label.toLowerCase();
-              if (confirmData.tipoAnterior === climaId) {
-                generarNuevaZona(climaId, confirmData.coordsAnteriores, confirmData.id, (confirmData.sizeAnterior || 250) + 150);
-                message.success("¡Zona de clima expandida!");
-              } else {
-                generarNuevaZona(climaId, userLocation, confirmData.id, 250);
-                message.warning("Clima actualizado en esta zona");
-              }
-            }}
+            onConfirm={handleConfirm}
           />
         )}
       </Modal>

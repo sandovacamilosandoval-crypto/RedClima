@@ -1,13 +1,37 @@
 .map-layout {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh; /* evita el salto por la barra del navegador en móviles */
   position: relative;
   overflow: hidden;
 }
 
 .main-content {
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
   padding: 0 !important;
+  margin: 0 !important;
+  position: relative;
+  z-index: 1;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  z-index: 1;
+}
+
+/* Pantalla de carga mientras se obtiene el GPS */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  height: 100dvh;
+  background: #f0f2f5;
+  gap: 20px;
+  color: #74acff;
 }
 
 /* Contenedor del mapa y el blur */
@@ -34,6 +58,7 @@
   justify-content: center;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.2);
+  padding: 16px;
 }
 
 .lock-card {

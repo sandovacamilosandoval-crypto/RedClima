@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button, Input, Select, message, Divider, Progress } from "antd";
 import {
   UserOutlined,
@@ -9,40 +9,39 @@ import {
   RightOutlined,
   StarFilled,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import logo from "./assets/icono.png";
+import {
+  USERNAME_CHARS,
+  DIAS_BLOQUEO_USERNAME,
+  normalizarUsername,
+  esUsernameValido,
+} from "../constants/clima";
 import "./UserProfileMenu.css";
 
+const NIVELES = [
+  { nivel: 1, rango: "Observador", next: 100, color: "#ff4e4e" },
+  { nivel: 2, rango: "Informante", next: 1000, color: "#74acff" },
+  { nivel: 3, rango: "Explorador", next: 3000, color: "#2c3e50" },
+];
+
+const getLevelInfo = (count) =>
+  NIVELES.find((n) => count < n.next) || NIVELES[NIVELES.length - 1];
+
+const formatXP = (xp) =>
+  xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(xp);
+
 const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
+  const navigate = useNavigate();
   const [view, setView] = useState("HUB");
   const [currentUsername, setCurrentUsername] = useState(userFromLogin);
   const [tempUsername, setTempUsername] = useState(userFromLogin);
 
-  const [userXP, setUserXP] = useState(0);
-  const [reportCount, setReportCount] = useState(0);
-
-  useEffect(() => {
-    setCurrentUsername(userFromLogin);
-    setTempUsername(userFromLogin);
-    setUserXP(parseInt(localStorage.getItem("user_xp") || "0"));
-    setReportCount(parseInt(localStorage.getItem("user_reports_count") || "0"));
-  }, [userFromLogin]);
-
-  const formatXP = (xp) => {
-    if (xp >= 1000) {
-      return (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-    }
-    return xp.toString();
-  };
-
-  const getLevelInfo = (count) => {
-    if (count <= 100)
-      return { nivel: 1, rango: "Observador", next: 100, color: "#ff4e4e" };
-    if (count <= 1000)
-      return { nivel: 2, rango: "Informante", next: 1000, color: "#74acff" };
-    if (count <= 3000)
-      return { nivel: 3, rango: "Explorador", next: 3000, color: "#2c3e50" };
-    return { nivel: 3, rango: "Explorador", next: 3000, color: "#2c3e50" };
-  };
+  // Se leen al montar; MapPage desmonta el menú al cerrarlo, así que siempre están frescos
+  const [userXP] = useState(() => parseInt(localStorage.getItem("user_xp") || "0", 10));
+  const [reportCount] = useState(() =>
+    parseInt(localStorage.getItem("user_reports_count") || "0", 10),
+  );
 
   const level = getLevelInfo(reportCount);
   const percent = Math.min((reportCount / level.next) * 100, 100);
@@ -52,22 +51,27 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
     return savedDate ? new Date(savedDate) : new Date();
   });
 
-  const usernameRegex = /^[a-zA-Z0-9._-]*$/;
-  const isUsernameValid =
-    tempUsername.length >= 3 &&
-    tempUsername.length <= 20 &&
-    /^[a-zA-Z0-9._-]+$/.test(tempUsername);
+  const isUsernameValid = esUsernameValido(tempUsername);
+  const mostrarError = !isUsernameValid && tempUsername.length > 0;
 
-  const now = new Date();
   const diffDays = Math.floor(
-    Math.abs(now - lastChangeDate) / (1000 * 60 * 60 * 24),
+    Math.abs(new Date() - lastChangeDate) / (1000 * 60 * 60 * 24),
   );
+  const diasRestantes = DIAS_BLOQUEO_USERNAME - diffDays;
   const isButtonDisabled =
-    !isUsernameValid || tempUsername === currentUsername || diffDays < 7;
+    !isUsernameValid || tempUsername === currentUsername || diasRestantes > 0;
+
+  const handleLogout = () => {
+    // TODO: cuando exista autenticación real, cerrar también la sesión en el servidor
+    ["username", "lastChangeDate"].forEach((k) => localStorage.removeItem(k));
+    message.info("Sesión cerrada");
+    onCancel?.();
+    navigate("/", { replace: true });
+  };
 
   const handleSave = () => {
-    if (diffDays < 7 && tempUsername !== currentUsername) {
-      message.error(`¡Espera ${7 - diffDays} días más para cambiar tu nombre!`);
+    if (diasRestantes > 0 && tempUsername !== currentUsername) {
+      message.error(`¡Espera ${diasRestantes} días más para cambiar tu nombre!`);
     } else {
       localStorage.setItem("username", tempUsername);
       localStorage.setItem("lastChangeDate", new Date().toISOString());
@@ -145,39 +149,25 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
           maxLength={20}
           className="minimal-input"
           onChange={(e) => {
-            const val = e.target.value.toLowerCase().replace(/\s/g, "");
-            if (usernameRegex.test(val)) setTempUsername(val);
+            const val = normalizarUsername(e.target.value);
+            if (USERNAME_CHARS.test(val)) setTempUsername(val);
           }}
-          status={!isUsernameValid && tempUsername.length > 0 ? "error" : ""}
+          status={mostrarError ? "error" : ""}
         />
         <span
           className="setup-hint"
-          style={{
-            color:
-              !isUsernameValid && tempUsername.length > 0
-                ? "#ff4d4f"
-                : "#8c8c8c",
-          }}
+          style={{ color: mostrarError ? "#ff4d4f" : "#8c8c8c" }}
         >
-          • Usa letras (a–z) y números (0–9) Símbolos ( _ - . ).
+          • Entre 3 y 20 caracteres: letras (a–z), números (0–9) y _ - .
         </span>
-        <span
-          className="setup-hint"
-          style={{
-            color:
-              !isUsernameValid && tempUsername.length > 0
-                ? "#8c8c8c"
-                : "#8c8c8c",
-          }}
-        >
-          • No podrás cambiarlo durante 7 días.
+        <span className="setup-hint" style={{ color: "#8c8c8c" }}>
+          {diasRestantes > 0
+            ? `• Podrás cambiarlo en ${diasRestantes} día(s).`
+            : `• Tras cambiarlo, no podrás hacerlo de nuevo en ${DIAS_BLOQUEO_USERNAME} días.`}
         </span>
       </div>
       <Divider />
-      <div
-        className="menu-item logout-item-inline"
-        onClick={() => message.warning("Sesión cerrada")}
-      >
+      <div className="menu-item logout-item-inline" onClick={handleLogout}>
         <div className="item-left">
           <LogoutOutlined /> <span>Cerrar Sesión</span>
         </div>
@@ -216,6 +206,11 @@ const UserProfileMenu = ({ onCancel, userFromLogin = "Invitado" }) => {
             <span>Fecha</span>
           </div>
           <div className="h-scroll">
+            {historialReal.length === 0 && (
+              <p style={{ textAlign: "center", color: "#8c8c8c", margin: "16px 0" }}>
+                Aún no tienes reportes.
+              </p>
+            )}
             {historialReal.map((item) => (
               <div className="h-row" key={item.id}>
                 <span className="truncate-text">{item.ubicacion}</span>

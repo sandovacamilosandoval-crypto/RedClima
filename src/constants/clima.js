@@ -1,0 +1,44 @@
+// Fuente única de verdad para los tipos de clima y reglas compartidas.
+import soleado from "../components/assets/soleado.png";
+import nublado from "../components/assets/nublado.png";
+import lluvia from "../components/assets/lluvia.png";
+import tormenta from "../components/assets/tormenta.png";
+
+export const CLIMAS = [
+  { id: "soleado", label: "Soleado", img: soleado, color: "#ffa44e", anim: "anim-soleado" },
+  { id: "nublado", label: "Nublado", img: nublado, color: "#95a5a6", anim: "anim-nublado" },
+  { id: "lluvia", label: "Lluvia", img: lluvia, color: "#3498db", anim: "anim-lluvia" },
+  { id: "tormenta", label: "Tormenta", img: tormenta, color: "#2c3e50", anim: "anim-tormenta" },
+];
+
+export const CLIMA_POR_ID = Object.fromEntries(CLIMAS.map((c) => [c.id, c]));
+
+// Reglas de reportes
+export const RADIO_ZONA_INICIAL = 250; // metros
+export const EXPANSION_ZONA = 150; // metros que crece una zona al confirmarla
+export const DURACION_REPORTE_MS = 60 * 60 * 1000; // 1 hora de vigencia
+export const XP_POR_REPORTE = 10;
+
+// Ubicación por defecto si el GPS falla (Bogotá)
+export const UBICACION_DEFECTO = { lat: 4.6097, lng: -74.0817 };
+
+// Reglas del nombre de usuario (usadas en registro y perfil)
+export const USERNAME_CHARS = /^[a-z0-9._-]*$/;
+export const DIAS_BLOQUEO_USERNAME = 7;
+
+export const normalizarUsername = (valor) => valor.toLowerCase().replace(/\s/g, "");
+
+export const esUsernameValido = (u) =>
+  u.length >= 3 && u.length <= 20 && /^[a-z0-9._-]+$/.test(u);
+
+// Distancia real en metros entre dos coordenadas (fórmula de Haversine)
+export function distanciaMetros(a, b) {
+  const R = 6371000;
+  const rad = (g) => (g * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}

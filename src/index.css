@@ -2,11 +2,15 @@ html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
-  /* La regla de oro para eliminar el scroll */
-  overflow: hidden; 
+  min-height: 100%;
   background-color: #f5f7fa;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 }
+
+/* El scroll solo se bloquea en la pantalla del mapa (ver MapPage.css).
+   Las demás páginas deben poder hacer scroll en móviles. */
 
 * {
   box-sizing: border-box; /* Asegura que el padding no estire los elementos */

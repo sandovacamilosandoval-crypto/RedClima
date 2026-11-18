@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { Button, Input, message } from "antd";
 import { UserOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import {
+  USERNAME_CHARS,
+  DIAS_BLOQUEO_USERNAME,
+  normalizarUsername,
+  esUsernameValido,
+} from "../constants/clima";
 import "./UserSetup.css";
 
-export default function UserSetup({ onComplete, userData }) {
+export default function UserSetup({ onComplete }) {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const usernameRegex = /^[a-zA-Z0-9._-]*$/;
-  const isUsernameValid =
-    username.length >= 3 &&
-    username.length <= 20 &&
-    /^[a-zA-Z0-9._-]+$/.test(username);
+  const isUsernameValid = esUsernameValido(username);
+  const mostrarError = !isUsernameValid && username.length > 0;
 
   const handleFinish = () => {
     if (!isUsernameValid) {
@@ -20,8 +23,8 @@ export default function UserSetup({ onComplete, userData }) {
     }
     setLoading(true);
 
+    // TODO: reemplazar por la llamada real al backend (verificar que el nombre sea único)
     setTimeout(() => {
-      // GUARDAMOS EL NOMBRE Y LA FECHA ACTUAL (REGISTRO)
       localStorage.setItem("username", username);
       localStorage.setItem("lastChangeDate", new Date().toISOString());
       setLoading(false);
@@ -45,34 +48,26 @@ export default function UserSetup({ onComplete, userData }) {
         <div className="setup-input-group">
           <Input
             size="large"
-            placeholder="Ej: Usuario22"
+            placeholder="Ej: usuario22"
             prefix={<UserOutlined style={{ color: "#74acff" }} />}
             value={username}
             maxLength={20}
             onChange={(e) => {
-              const val = e.target.value.toLowerCase().replace(/\s/g, "");
-              if (usernameRegex.test(val)) setUsername(val);
+              const val = normalizarUsername(e.target.value);
+              if (USERNAME_CHARS.test(val)) setUsername(val);
             }}
+            onPressEnter={handleFinish}
             className="setup-input"
-            status={!isUsernameValid && username.length > 0 ? "error" : ""}
+            status={mostrarError ? "error" : ""}
           />
           <span
             className="setup-hint"
-            style={{
-              color:
-                !isUsernameValid && username.length > 0 ? "#ff4d4f" : "#8c8c8c",
-            }}
+            style={{ color: mostrarError ? "#ff4d4f" : "#8c8c8c" }}
           >
-            • Usa letras (a–z) y números (0–9) Símbolos ( _ - . ).
+            • Entre 3 y 20 caracteres: letras (a–z), números (0–9) y _ - .
           </span>
-          <span
-            className="setup-hint"
-            style={{
-              color:
-                !isUsernameValid && username.length > 0 ? "#8c8c8c" : "#8c8c8c",
-            }}
-          >
-            • No podrás cambiarlo durante 7 días.
+          <span className="setup-hint" style={{ color: "#8c8c8c" }}>
+            • No podrás cambiarlo durante {DIAS_BLOQUEO_USERNAME} días.
           </span>
         </div>
 
