@@ -7,9 +7,39 @@
 --   insert into public.staff (usuario_id, rol)
 --   select id, 'admin' from public.perfiles where username = 'TU_USUARIO';
 --
--- Niveles (deben coincidir con src/constants/niveles.js):
---   Observador 0–9 reportes · Informante 10–49 · Explorador 50+
+-- Reportes: duran 30 minutos (antes 1 hora).
+-- Niveles por XP (deben coincidir con src/constants/niveles.js). Cada reporte
+-- da 10 XP. XP necesaria para pasar al siguiente nivel, contando desde cero:
+--   1 Observador  → 2: 100   (10 reportes)
+--   2 Informante  → 3: 300   (30 reportes)
+--   3 Explorador  → 4: 700   (70 reportes)
+--   4 Guardián    → 5: 1500  (150 reportes)
+--   5 Centinela: nivel máximo
+--   El salto crece cada vez (+200, +400, +800): XP acumulada 100 / 400 / 1100 / 2600.
 -- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- Duración de los reportes: 30 minutos
+-- ---------------------------------------------------------------------
+alter table public.reportes alter column expira_en set default now() + interval '30 minutes';
+
+-- ---------------------------------------------------------------------
+-- Niveles (fuente única en la base de datos)
+-- ---------------------------------------------------------------------
+create function public.nivel_de_xp (p_xp integer)
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when p_xp >= 2600 then 5
+    when p_xp >= 1100 then 4
+    when p_xp >= 400 then 3
+    when p_xp >= 100 then 2
+    else 1
+  end;
+$$;
 
 -- ---------------------------------------------------------------------
 -- Estado de cuenta y reportes ocultos
@@ -670,7 +700,8 @@ begin
            r.tipo,
            r.ubicacion,
            r.creado_en,
-           greatest(0.1, 1 - extract(epoch from now() - r.creado_en) / 3600.0)
+           -- recién hecho pesa 1.0 → 0.1 al expirar (30 min); verificados ×1.5
+           greatest(0.1, 1 - extract(epoch from now() - r.creado_en) / 1800.0)
              * case when p.verificado then 1.5 else 1 end as peso,
            floor(extensions.st_x(extensions.st_transform(r.ubicacion::extensions.geometry, 3857)) / 1000)::bigint as celda_x,
            floor(extensions.st_y(extensions.st_transform(r.ubicacion::extensions.geometry, 3857)) / 1000)::bigint as celda_y
@@ -759,7 +790,8 @@ $$;
 -- ---------------------------------------------------------------------
 -- Consultas del panel
 -- ---------------------------------------------------------------------
-create function public.admin_resumen ()
+-- p_horas: periodo elegido en el panel (1, 12, 24, 168, 720...)
+create function public.admin_resumen (p_horas integer default 24)
 returns jsonb
 language plpgsql
 stable
@@ -768,23 +800,28 @@ set search_path = ''
 as $$
 declare
   v jsonb;
+  v_periodo interval := make_interval(hours => least(greatest(coalesce(p_horas, 24), 1), 24 * 90));
+  v_desde timestamptz := now() - v_periodo;
 begin
   if not public.es_staff() then
     raise exception 'No autorizado';
   end if;
 
   select jsonb_build_object(
-    'reportes_24h', (select count(*) from public.reportes where creado_en > now() - interval '24 hours'),
-    'media_diaria_7d', (select round(count(*) / 7.0, 1) from public.reportes
-                         where creado_en > now() - interval '8 days' and creado_en <= now() - interval '24 hours'),
-    'reporteros_24h', (select count(distinct usuario_id) from public.reportes where creado_en > now() - interval '24 hours'),
-    'reporteros_7d', (select count(distinct usuario_id) from public.reportes where creado_en > now() - interval '7 days'),
+    'horas', extract(epoch from v_periodo) / 3600,
+    'reportes', (select count(*) from public.reportes where creado_en > v_desde),
+    -- mismo largo de periodo, justo antes (para comparar)
+    'reportes_periodo_anterior', (select count(*) from public.reportes
+                                   where creado_en > v_desde - v_periodo and creado_en <= v_desde),
+    'reporteros', (select count(distinct usuario_id) from public.reportes where creado_en > v_desde),
+    'reporteros_periodo_anterior', (select count(distinct usuario_id) from public.reportes
+                                     where creado_en > v_desde - v_periodo and creado_en <= v_desde),
     'usuarios_total', (select count(*) from public.perfiles),
-    'nuevos_7d', (select count(*) from public.perfiles where creado_en > now() - interval '7 days'),
-    -- Embudo: de los registrados en 30 días, cuántos hicieron al menos 1 reporte
+    'nuevos', (select count(*) from public.perfiles where creado_en > v_desde),
+    -- Embudo: de los registrados en el periodo, cuántos hicieron al menos 1 reporte
     'embudo_primer_reporte', (
       select round(100.0 * count(*) filter (where total_reportes > 0) / nullif(count(*), 0), 1)
-        from public.perfiles where creado_en > now() - interval '30 days'),
+        from public.perfiles where creado_en > v_desde),
     -- Retención semanal: reporteros de la semana pasada que volvieron esta semana
     'retencion_semanal', (
       with previa as (
@@ -805,30 +842,30 @@ begin
                order by extract(epoch from primera_respuesta_en - creado_en) / 3600))::numeric, 1)
         from public.tickets
        where primera_respuesta_en is not null and creado_en > now() - interval '30 days'),
-    'ocultos_7d', (select count(*) from public.reportes where oculto and creado_en > now() - interval '7 days'),
+    'ocultos', (select count(*) from public.reportes where oculto and creado_en > v_desde),
     'suspendidos', (select count(*) from public.perfiles where estado = 'suspendido'),
-    'por_hora_30d', (
+    -- reportes por hora del día (hora de Bogotá) dentro del periodo
+    'por_hora', (
       select jsonb_agg(coalesce(c.n, 0) order by h.hora)
         from generate_series(0, 23) as h(hora)
         left join (
           select extract(hour from creado_en at time zone 'America/Bogota')::int as hora, count(*) as n
-            from public.reportes where creado_en > now() - interval '30 days'
+            from public.reportes where creado_en > v_desde
            group by 1) c on c.hora = h.hora),
-    'por_tipo_24h', (
+    'por_tipo', (
       select coalesce(jsonb_object_agg(tipo, n), '{}')
         from (select tipo, count(*) as n from public.reportes
-               where creado_en > now() - interval '24 hours' group by tipo) t),
+               where creado_en > v_desde group by tipo) t),
     'niveles', (
-      select jsonb_build_object(
-        'observador', count(*) filter (where total_reportes < 10),
-        'informante', count(*) filter (where total_reportes between 10 and 49),
-        'explorador', count(*) filter (where total_reportes >= 50))
-        from public.perfiles),
-    'top_reporteros_7d', (
+      select jsonb_agg(coalesce(c.n, 0) order by g.nivel)
+        from generate_series(1, 5) as g(nivel)
+        left join (select public.nivel_de_xp(xp) as nivel, count(*) as n
+                     from public.perfiles group by 1) c on c.nivel = g.nivel),
+    'top_reporteros', (
       select coalesce(jsonb_agg(t order by t.reportes desc), '[]')
         from (select p.id, p.username, p.verificado, count(*) as reportes
                 from public.reportes r join public.perfiles p on p.id = r.usuario_id
-               where r.creado_en > now() - interval '7 days'
+               where r.creado_en > v_desde
                group by p.id
                order by count(*) desc
                limit 10) t)
@@ -842,7 +879,8 @@ create function public.admin_usuarios (
   p_busqueda text default null,
   p_estado text default null,
   p_limite integer default 50,
-  p_offset integer default 0
+  p_offset integer default 0,
+  p_id uuid default null
 )
 returns table (
   id uuid,
@@ -851,6 +889,7 @@ returns table (
   creado_en timestamptz,
   ultimo_acceso timestamptz,
   xp integer,
+  nivel integer,
   total_reportes integer,
   reportes_7d integer,
   ultimo_reporte_en timestamptz,
@@ -882,6 +921,7 @@ begin
          p.creado_en,
          u.last_sign_in_at,
          p.xp,
+         public.nivel_de_xp(p.xp),
          p.total_reportes,
          (select count(*)::integer from public.reportes r
            where r.usuario_id = p.id and r.creado_en > now() - interval '7 days'),
@@ -908,7 +948,8 @@ begin
        order by count(*) desc
        limit 1
     ) z on true
-   where (p_busqueda is null or p_busqueda = ''
+   where (p_id is null or p.id = p_id)
+     and (p_busqueda is null or p_busqueda = ''
           or p.username ilike '%' || p_busqueda || '%'
           or (v_admin and u.email ilike '%' || p_busqueda || '%'))
      and (p_estado is null or p_estado = '' or p.estado = p_estado
@@ -924,7 +965,8 @@ create function public.admin_reportes (
   p_horas integer default 24,
   p_solo_ocultos boolean default false,
   p_usuario uuid default null,
-  p_limite integer default 200
+  p_limite integer default 200,
+  p_busqueda text default null
 )
 returns table (
   id bigint,
@@ -961,6 +1003,9 @@ begin
    where r.creado_en > now() - make_interval(hours => least(greatest(p_horas, 1), 24 * 90))
      and (not p_solo_ocultos or r.oculto)
      and (p_usuario is null or r.usuario_id = p_usuario)
+     and (p_busqueda is null or p_busqueda = ''
+          or p.username ilike '%' || p_busqueda || '%'
+          or r.tipo::text ilike '%' || p_busqueda || '%')
    order by r.creado_en desc
    limit least(greatest(p_limite, 1), 500);
 end;
@@ -1126,9 +1171,9 @@ revoke execute on function
   public.admin_ocultar_reporte (bigint, boolean, text),
   public.actividad_cercana (double precision, double precision),
   public.actividad_publica (),
-  public.admin_resumen (),
-  public.admin_usuarios (text, text, integer, integer),
-  public.admin_reportes (integer, boolean, uuid, integer),
+  public.admin_resumen (integer),
+  public.admin_usuarios (text, text, integer, integer, uuid),
+  public.admin_reportes (integer, boolean, uuid, integer, text),
   public.admin_anomalias (integer),
   public.admin_auditoria (uuid, integer),
   public.admin_equipo ()
@@ -1145,13 +1190,20 @@ grant execute on function
   public.admin_ocultar_reporte (bigint, boolean, text),
   public.actividad_cercana (double precision, double precision),
   public.actividad_publica (),
-  public.admin_resumen (),
-  public.admin_usuarios (text, text, integer, integer),
-  public.admin_reportes (integer, boolean, uuid, integer),
+  public.admin_resumen (integer),
+  public.admin_usuarios (text, text, integer, integer, uuid),
+  public.admin_reportes (integer, boolean, uuid, integer, text),
   public.admin_anomalias (integer),
   public.admin_auditoria (uuid, integer),
   public.admin_equipo ()
 to authenticated;
 
+-- Lectura directa (filtrada por RLS). Nada de escritura directa: todo pasa por funciones.
+revoke all on public.staff, public.tickets, public.ticket_mensajes, public.notificaciones,
+  public.acciones_moderacion from anon, authenticated;
+grant select on public.staff, public.tickets, public.ticket_mensajes, public.notificaciones
+  to authenticated;
+
 -- El contador de la Landing lo ven también los visitantes sin sesión
 grant execute on function public.actividad_publica () to anon;
+grant execute on function public.nivel_de_xp (integer) to anon, authenticated;
