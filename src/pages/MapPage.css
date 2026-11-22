@@ -127,3 +127,86 @@
   font-size: 13px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
+
+/* Explicación antes de pedir el permiso de ubicación */
+.gps-explicacion {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #f0f4fa;
+}
+
+.gps-explicacion-lista {
+  text-align: left;
+  margin: 0 0 20px;
+  padding-left: 20px;
+  color: #3d4451;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.lock-nota {
+  margin: 14px 0 0 !important;
+  font-size: 13px;
+}
+
+/* Punto de mensajes nuevos en el botón del menú */
+.btn-hamburguesa .punto-notif {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #e5484d;
+  border: 2px solid #fff;
+}
+
+/* Estado vacío del mapa */
+.estado-vacio {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(92%, 400px);
+  padding: 14px 40px 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  color: #3d4451;
+  font-size: 13px;
+}
+
+.estado-vacio strong {
+  display: block;
+  font-size: 15px;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.estado-vacio p {
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
+.estado-vacio-cerrar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: #596579;
+  cursor: pointer;
+}
+
+.estado-vacio-cerrar:hover { background: #f1f5f9; }
+.estado-vacio-cerrar:focus-visible { outline: 3px solid #1a5fd0; }
+
+.denuncia-texto { color: #3d4451; }
+.denuncia-nota { margin: 12px 0 0; font-size: 12px; color: #596579; }

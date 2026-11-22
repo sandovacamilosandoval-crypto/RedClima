@@ -29,18 +29,24 @@ export default function Privacidad() {
             <li>De tu cuenta de Google: correo electrónico e identificador de la cuenta.</li>
             <li>El nombre de usuario que eliges.</li>
             <li>Tu ubicación aproximada <em>solo en el momento en que haces un reporte</em>, junto con el clima reportado y la hora.</li>
-            <li>Los mensajes que envías a Soporte.</li>
+            <li>Los mensajes que envías a Soporte y las denuncias de zonas, junto con datos técnicos (versión de la app,
+              navegador, tamaño de pantalla) y tu zona aproximada (~100 m) para poder resolverlos.</li>
           </ul>
 
           <p><strong>3. Finalidad.</strong> Mostrar en el mapa el clima reportado por la comunidad, evitar reportes falsos o
-            abusivos, llevar tu historial, nivel y XP, y responder tus solicitudes de soporte. No vendemos ni compartimos tus
+            abusivos (moderación), llevar tu historial, nivel y XP, y responder tus solicitudes de soporte. No vendemos ni compartimos tus
             datos con fines publicitarios.</p>
 
           <p><strong>4. Qué ven los demás.</strong> Solo tu nombre de usuario. Tu correo y tu nombre real son privados.
             Los reportes se muestran <em>agrupados en zonas</em> con coordenadas redondeadas (~100 m), nunca tu ubicación
             exacta ni quién reportó.</p>
 
-          <p><strong>5. Conservación.</strong> Los reportes dejan de mostrarse en el mapa 1 hora después de creados.
+          <p><strong>4.1 Equipo de moderación.</strong> Para prevenir abusos, el equipo de RedClima puede ver tus reportes,
+            tus mensajes de soporte y, solo los administradores, tu correo y tu zona habitual aproximada (~1 km). Puede
+            advertir, suspender cuentas u ocultar reportes falsos. Toda acción de moderación queda registrada con su motivo
+            y se te notifica en <em>Menú → Mis mensajes</em>.</p>
+
+          <p><strong>5. Conservación.</strong> Los reportes dejan de mostrarse en el mapa 30 minutos después de creados.
             Se conservan en tu historial mientras tengas la cuenta.</p>
 
           <p><strong>6. Tus derechos.</strong> Puedes conocer, actualizar, rectificar y suprimir tus datos, revocar esta

@@ -178,6 +178,8 @@ as $$
   values (p_usuario, p_tipo, p_titulo, p_cuerpo, p_ticket);
 $$;
 
+-- Con p_ticket: marca las de ese caso. Sin p_ticket: solo los avisos sin caso
+-- (las respuestas de cada caso se marcan al abrirlo).
 create function public.marcar_notificaciones_leidas (p_ticket bigint default null)
 returns void
 language sql
@@ -188,7 +190,7 @@ as $$
      set leida = true
    where usuario_id = auth.uid()
      and not leida
-     and (p_ticket is null or ticket_id = p_ticket);
+     and ((p_ticket is null and ticket_id is null) or ticket_id = p_ticket);
 $$;
 
 -- ---------------------------------------------------------------------

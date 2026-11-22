@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { App, Button, Input, Select, Divider, Progress, Spin } from "antd";
+import { App, Button, Input, Divider, Progress, Spin } from "antd";
 import {
   UserOutlined,
   HistoryOutlined,
@@ -8,6 +8,9 @@ import {
   ArrowLeftOutlined,
   RightOutlined,
   DeleteOutlined,
+  MessageOutlined,
+  DashboardOutlined,
+  TrophyOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/icono.png";
@@ -22,23 +25,17 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { formatearFecha } from "../lib/formato";
 import { mensajeError } from "../lib/errores";
+import { NIVELES, XP_POR_REPORTE, infoNivel } from "../constants/niveles";
+import SoporteForm from "./Soporte/SoporteForm";
+import MisMensajes from "./Soporte/MisMensajes";
 import "./UserProfileMenu.css";
-
-const NIVELES = [
-  { nivel: 1, rango: "Observador", next: 100, color: "#ff4e4e" },
-  { nivel: 2, rango: "Informante", next: 1000, color: "#74acff" },
-  { nivel: 3, rango: "Explorador", next: 3000, color: "#2c3e50" },
-];
-
-const getLevelInfo = (count) =>
-  NIVELES.find((n) => count < n.next) || NIVELES[NIVELES.length - 1];
 
 const formatXP = (xp) =>
   xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(xp);
 
-const UserProfileMenu = ({ onCancel }) => {
+const UserProfileMenu = ({ onCancel, ubicacion }) => {
   const navigate = useNavigate();
-  const { perfil, refrescarPerfil, cerrarSesion } = useAuth();
+  const { perfil, rol, noLeidas, refrescarPerfil, cerrarSesion } = useAuth();
   const { message, modal } = App.useApp();
 
   const [view, setView] = useState("HUB");
@@ -49,14 +46,9 @@ const UserProfileMenu = ({ onCancel }) => {
 
   const [historial, setHistorial] = useState(null);
 
-  const [asunto, setAsunto] = useState();
-  const [mensaje, setMensaje] = useState("");
-  const [enviandoSoporte, setEnviandoSoporte] = useState(false);
-
   if (!perfil) return null;
 
-  const level = getLevelInfo(perfil.total_reportes);
-  const percent = Math.min((perfil.total_reportes / level.next) * 100, 100);
+  const nivel = infoNivel(perfil.xp);
 
   const isUsernameValid = esUsernameValido(tempUsername);
   const mostrarError = !isUsernameValid && tempUsername.length > 0;
@@ -105,27 +97,6 @@ const UserProfileMenu = ({ onCancel }) => {
     }
   };
 
-  const enviarSoporte = async () => {
-    if (!asunto || mensaje.trim().length < 5) {
-      message.warning("Elige un asunto y escribe al menos 5 caracteres");
-      return;
-    }
-    if (enviandoSoporte) return;
-    setEnviandoSoporte(true);
-    const { error } = await supabase
-      .from("mensajes_soporte")
-      .insert({ asunto, mensaje: mensaje.trim() });
-    setEnviandoSoporte(false);
-    if (error) {
-      message.error(mensajeError(error, "No pudimos enviar tu mensaje. Inténtalo de nuevo."));
-      return;
-    }
-    message.success("¡Gracias! Recibimos tu mensaje");
-    setAsunto(undefined);
-    setMensaje("");
-    setView("HUB");
-  };
-
   const confirmarBorrarCuenta = () => {
     modal.confirm({
       title: "¿Borrar tu cuenta?",
@@ -155,25 +126,39 @@ const UserProfileMenu = ({ onCancel }) => {
         </div>
         <div className="user-info-mini">
           <h3>@{perfil.username}</h3>
-          <span className="badge-rango" style={{ color: level.color }}>
-            {level.rango} (Niv. {level.nivel})
+          <span className="badge-rango" style={{ color: nivel.actual.color }}>
+            Nivel {nivel.actual.nivel} · {nivel.actual.nombre}
+            {perfil.verificado && " · ✔ Verificado"}
           </span>
         </div>
       </div>
 
       <div className="xp-section">
         <div className="xp-labels">
-          <span>{formatXP(perfil.xp)} XP</span>
-          <span>
-            {perfil.total_reportes} / {level.next} reportes
-          </span>
+          {nivel.siguiente ? (
+            <>
+              <span>
+                {formatXP(nivel.xpEnNivel)} / {formatXP(nivel.xpNecesaria)} XP
+              </span>
+              <span>
+                {nivel.reportesFaltantes} {nivel.reportesFaltantes === 1 ? "reporte" : "reportes"} para{" "}
+                {nivel.siguiente.nombre}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>{formatXP(perfil.xp)} XP</span>
+              <span>¡Nivel máximo!</span>
+            </>
+          )}
         </div>
         <Progress
-          percent={percent}
+          percent={nivel.porcentaje}
           showInfo={false}
-          strokeColor={level.color}
+          strokeColor={nivel.actual.color}
           railColor="#f1f2f6"
           size={{ height: 10 }}
+          aria-label={`Progreso del nivel ${nivel.actual.nivel}`}
         />
       </div>
 
@@ -190,12 +175,37 @@ const UserProfileMenu = ({ onCancel }) => {
           </div>
           <RightOutlined className="arrow-icon" aria-hidden="true" />
         </button>
-        <button type="button" className="menu-item" onClick={() => setView("SUPPORT")}>
+        <button type="button" className="menu-item" onClick={() => setView("NIVELES")}>
           <div className="item-left">
-            <CustomerServiceOutlined /> <span>Soporte</span>
+            <TrophyOutlined /> <span>Niveles</span>
           </div>
           <RightOutlined className="arrow-icon" aria-hidden="true" />
         </button>
+        <button type="button" className="menu-item" onClick={() => setView("MENSAJES")}>
+          <div className="item-left">
+            <MessageOutlined /> <span>Mis mensajes</span>
+          </div>
+          {noLeidas > 0 && (
+            <span className="badge-menu" aria-label={`${noLeidas} sin leer`}>
+              {noLeidas}
+            </span>
+          )}
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
+        <button type="button" className="menu-item" onClick={() => setView("SUPPORT")}>
+          <div className="item-left">
+            <CustomerServiceOutlined /> <span>Ayuda, quejas o sugerencias</span>
+          </div>
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
+        {rol && (
+          <button type="button" className="menu-item" onClick={() => navigate("/admin")}>
+            <div className="item-left">
+              <DashboardOutlined /> <span>Panel de administración</span>
+            </div>
+            <RightOutlined className="arrow-icon" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="menu-footer-centered">
@@ -310,47 +320,37 @@ const UserProfileMenu = ({ onCancel }) => {
     </div>
   );
 
-  const renderSupport = () => (
+  const renderNiveles = () => (
     <div className="menu-subview-container">
-      <h2 className="subview-title centered">Soporte</h2>
-      <Select
-        placeholder="Asunto"
-        aria-label="Asunto"
-        className="minimal-select"
-        style={{ width: "100%" }}
-        value={asunto}
-        onChange={setAsunto}
-        options={[
-          { value: "error", label: "Reportar un error" },
-          { value: "sugerencia", label: "Sugerencia" },
-          { value: "otro", label: "Otro" },
-        ]}
-      />
-      <Input.TextArea
-        aria-label="Mensaje"
-        showCount
-        rows={4}
-        maxLength={2000}
-        placeholder="Dinos qué sucede..."
-        value={mensaje}
-        onChange={(e) => setMensaje(e.target.value)}
-        style={{ marginTop: "15px", borderRadius: "12px" }}
-      />
-      <div className="dual-buttons-container">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          className="btn-volver-rojo"
-          onClick={() => setView("HUB")}
-        >
+      <h2 className="subview-title centered">Niveles</h2>
+      <p className="niveles-intro">
+        Cada reporte suma {XP_POR_REPORTE} XP. Al subir de nivel, la barra vuelve a empezar y el
+        siguiente nivel pide un poco más.
+      </p>
+      <ol className="niveles-lista">
+        {NIVELES.map((n, i) => {
+          const siguiente = NIVELES[i + 1];
+          const costo = siguiente ? siguiente.desde - n.desde : null;
+          const actual = n.nivel === nivel.actual.nivel;
+          return (
+            <li key={n.nivel} className={actual ? "actual" : ""} aria-current={actual ? "step" : undefined}>
+              <span className="niveles-num" style={{ background: n.color }}>{n.nivel}</span>
+              <div>
+                <strong>{n.nombre}</strong>
+                <span>
+                  {costo
+                    ? `${costo} XP (${costo / XP_POR_REPORTE} reportes) para subir`
+                    : "Nivel máximo"}
+                </span>
+                <span className="niveles-premio">{n.premio}</span>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="menu-footer-centered">
+        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={() => setView("HUB")}>
           Volver
-        </Button>
-        <Button
-          type="primary"
-          className="btn-action-azul"
-          loading={enviandoSoporte}
-          onClick={enviarSoporte}
-        >
-          Enviar
         </Button>
       </div>
     </div>
@@ -361,7 +361,17 @@ const UserProfileMenu = ({ onCancel }) => {
       {view === "HUB" && renderHub()}
       {view === "PROFILE" && renderProfile()}
       {view === "HISTORY" && renderHistory()}
-      {view === "SUPPORT" && renderSupport()}
+      {view === "NIVELES" && renderNiveles()}
+      {view === "SUPPORT" && (
+        <SoporteForm
+          ubicacion={ubicacion}
+          onVolver={() => setView("HUB")}
+          onEnviado={() => setView("MENSAJES")}
+        />
+      )}
+      {view === "MENSAJES" && (
+        <MisMensajes onVolver={() => setView("HUB")} onNuevo={() => setView("SUPPORT")} />
+      )}
     </div>
   );
 };

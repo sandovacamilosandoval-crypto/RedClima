@@ -14,6 +14,8 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 const MapPage = lazy(() => import('./pages/MapPage'));
 const Terminos = lazy(() => import('./pages/Terminos'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
+// El panel del equipo va en su propio paquete: los usuarios normales nunca lo descargan
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
 function Cargando() {
   return (
@@ -51,6 +53,18 @@ function RequierePerfil({ children }) {
   return children;
 }
 
+// Panel: requiere ser del equipo. Es solo la interfaz: la base de datos
+// rechaza cualquier consulta del panel si no eres moderador o admin.
+function RequiereStaff({ children }) {
+  const { session, perfil, rol, errorPerfil } = useAuth();
+  if (errorPerfil) return <ErrorPerfil />;
+  if (session === undefined || (session && (perfil === undefined || rol === undefined))) return <Cargando />;
+  if (!session) return <Navigate to="/login" replace />;
+  if (!perfil) return <Navigate to="/registro" replace />;
+  if (!rol) return <Navigate to="/mapa" replace />;
+  return children;
+}
+
 // Registro: requiere sesión, pero aún sin perfil
 function RutaRegistro() {
   const { session, perfil, errorPerfil } = useAuth();
@@ -77,6 +91,7 @@ function App() {
                 <Route path="/registro" element={<RutaRegistro />} />
                 <Route path="/tutorial" element={<RequierePerfil><Onboarding /></RequierePerfil>} />
                 <Route path="/mapa" element={<RequierePerfil><MapPage /></RequierePerfil>} />
+                <Route path="/admin/*" element={<RequiereStaff><AdminApp /></RequiereStaff>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

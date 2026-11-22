@@ -36,11 +36,35 @@ npm run build    # build de producción
 Las migraciones están en `supabase/migrations/` y se aplican en orden
 (`supabase db push`). Las reglas de negocio viven en la base de datos:
 
-- Un reporte dura 1 hora; máximo 1 cada 10 min por usuario (a prueba de envíos simultáneos).
+- Un reporte dura 30 minutos y desbloquea el mapa ese tiempo; máximo 1 cada 10 min por usuario
+  (a prueba de envíos simultáneos).
 - Precisión GPS obligatoria y de 500 m como máximo.
 - Las zonas se calculan por celdas de ~1 km y solo se muestran si las reportaron 2+ personas
   (o si son solo tuyas). Para ver zonas hace falta tener un reporte vigente.
-- Soporte: máximo 3 mensajes por hora y 10 por día por usuario.
+- Niveles por XP (10 XP por reporte), con costo progresivo y barra que reinicia en cada nivel:
+  Observador → Informante 100 XP → Explorador +300 → Guardián +700 → Centinela +1500.
+  Fuente única: `public.nivel_de_xp()` y `src/constants/niveles.js` (deben coincidir).
+- Soporte con casos (tickets), conversación y notificaciones: máximo 3 casos por hora y 10 por día.
+
+## Panel de administración (`/admin`)
+
+Roles `moderador` y `admin` en la tabla `staff`. La seguridad está en la base de datos (RLS y
+funciones `admin_*`); la ruta solo es la interfaz y se descarga aparte. Para crear el primer admin,
+ejecuta en el SQL Editor de Supabase:
+
+```sql
+insert into public.staff (usuario_id, rol)
+select id, 'admin' from public.perfiles where username = 'TU_USUARIO';
+```
+
+Secciones: Resumen (filtro 1 h / 12 h / 1 día / 1 semana / 1 mes y búsqueda de reportes),
+Soporte, Reportes (mapa), Usuarios, Calidad del dato (anomalías) y Auditoría (solo admin).
+Tocar cualquier reporte o usuario abre su ficha con sus reportes, casos y moderación.
+
+## Versiones
+
+- `v1`: lo que estaba publicado antes de la auditoría (rama `v1`).
+- `v2`: auditoría QA + mejoras de producto + panel de administración.
 
 ## Producción (Vercel)
 

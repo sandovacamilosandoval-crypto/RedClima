@@ -24,12 +24,14 @@ const ICONOS = Object.fromEntries(
   ])
 );
 
-// Una zona agregada que viene de la función zonas_cercanas de Supabase
-const ZonaClima = ({ zona, ahora }) => {
+// Una zona agregada que viene de la función zonas_cercanas de Supabase.
+// Al tocarla se ve, ante todo, hace cuántos minutos se reportó.
+const ZonaClima = ({ zona, ahora, onDenunciar }) => {
   if (!zona) return null;
 
   const clima = CLIMA_POR_ID[zona.tipo] || CLIMA_POR_ID.soleado;
   const posicion = [zona.lat, zona.lng];
+  const personas = zona.reportes === 1 ? "1 reporte" : `${zona.reportes} reportes`;
 
   return (
     <>
@@ -47,11 +49,18 @@ const ZonaClima = ({ zona, ahora }) => {
       />
       <Marker position={posicion} icon={ICONOS[clima.id]} alt={clima.label}>
         <Popup>
-          <strong>{clima.label}</strong>
-          <br />
-          {zona.reportes} {zona.reportes === 1 ? "reporte" : "reportes"} · {Math.round((zona.confianza ?? 1) * 100)}% de acuerdo
-          <br />
-          Actualizado {haceCuanto(zona.actualizado_en, ahora)}
+          <div className="zona-popup">
+            <span className="zona-popup-hace">{haceCuanto(zona.actualizado_en, ahora)}</span>
+            <strong className="zona-popup-tipo">{clima.label}</strong>
+            <span className="zona-popup-detalle">
+              {personas} · {Math.round((zona.confianza ?? 1) * 100)}% de acuerdo
+            </span>
+            {onDenunciar && (
+              <button type="button" className="zona-popup-denunciar" onClick={() => onDenunciar(zona)}>
+                🚩 Esto no es cierto
+              </button>
+            )}
+          </div>
         </Popup>
       </Marker>
     </>

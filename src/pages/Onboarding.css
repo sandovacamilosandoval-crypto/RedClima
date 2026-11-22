@@ -176,3 +176,24 @@
 .nublado { background: rgba(99, 110, 114, 0.15); }
 .lluvia { background: rgba(104, 179, 255, 0.15); }
 .tormenta { background: rgba(54, 61, 63, 0.15); }
+.ob-card {
+  position: relative;
+}
+
+.ob-saltar {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #596579;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.ob-saltar:hover { background: #f1f5f9; }
+.ob-saltar:focus-visible { outline: 3px solid #1a5fd0; outline-offset: 2px; }
