@@ -1,5 +1,5 @@
 // Niveles por XP. Deben coincidir con public.nivel_de_xp() en
-// supabase/migrations/20261123000000_admin_soporte_moderacion.sql
+// supabase/migrations/20261122212254_admin_soporte_moderacion.sql
 //
 // Cada reporte da 10 XP. La barra empieza de cero en cada nivel y el costo
 // crece de forma progresiva: 100 → 300 → 700 → 1500 XP (+200, +400, +800).
