@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Input, Select, message, Divider, Progress, Modal, Spin } from "antd";
+import { App, Button, Input, Select, Divider, Progress, Spin } from "antd";
 import {
   UserOutlined,
   HistoryOutlined,
@@ -21,6 +21,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { formatearFecha } from "../lib/formato";
+import { mensajeError } from "../lib/errores";
 import "./UserProfileMenu.css";
 
 const NIVELES = [
@@ -38,6 +39,7 @@ const formatXP = (xp) =>
 const UserProfileMenu = ({ onCancel }) => {
   const navigate = useNavigate();
   const { perfil, refrescarPerfil, cerrarSesion } = useAuth();
+  const { message, modal } = App.useApp();
 
   const [view, setView] = useState("HUB");
   const [tempUsername, setTempUsername] = useState(perfil?.username ?? "");
@@ -63,23 +65,32 @@ const UserProfileMenu = ({ onCancel }) => {
   const isButtonDisabled =
     !isUsernameValid || tempUsername === perfil.username || diasRestantes > 0;
 
-  const salir = async () => {
-    await cerrarSesion();
+  // scope "local" tras borrar la cuenta: el usuario ya no existe en el servidor
+  const salir = async (scope = "global") => {
+    try {
+      await cerrarSesion(scope);
+    } catch {
+      // aunque falle la red, salimos de la pantalla
+    }
     onCancel?.();
     navigate("/", { replace: true });
   };
 
   const handleSave = async () => {
+    if (guardando) return;
     setGuardando(true);
-    const { error } = await supabase.rpc("cambiar_username", { p_username: tempUsername });
-    setGuardando(false);
-    if (error) {
-      message.error(error.message);
-      return;
+    try {
+      const { error } = await supabase.rpc("cambiar_username", { p_username: tempUsername });
+      if (error) {
+        message.error(mensajeError(error, "No pudimos cambiar tu nombre. Inténtalo de nuevo."));
+        return;
+      }
+      message.success("Nombre actualizado");
+      setView("HUB");
+      await refrescarPerfil().catch(() => {});
+    } finally {
+      setGuardando(false);
     }
-    await refrescarPerfil();
-    message.success("Nombre actualizado");
-    setView("HUB");
   };
 
   const abrirHistorial = async () => {
@@ -87,7 +98,7 @@ const UserProfileMenu = ({ onCancel }) => {
     setHistorial(null);
     const { data, error } = await supabase.rpc("mis_reportes", { p_limite: 50 });
     if (error) {
-      message.error("No pudimos cargar tu historial");
+      message.error(mensajeError(error, "No pudimos cargar tu historial"));
       setHistorial([]);
     } else {
       setHistorial(data);
@@ -99,13 +110,14 @@ const UserProfileMenu = ({ onCancel }) => {
       message.warning("Elige un asunto y escribe al menos 5 caracteres");
       return;
     }
+    if (enviandoSoporte) return;
     setEnviandoSoporte(true);
     const { error } = await supabase
       .from("mensajes_soporte")
       .insert({ asunto, mensaje: mensaje.trim() });
     setEnviandoSoporte(false);
     if (error) {
-      message.error("No pudimos enviar tu mensaje. Inténtalo de nuevo.");
+      message.error(mensajeError(error, "No pudimos enviar tu mensaje. Inténtalo de nuevo."));
       return;
     }
     message.success("¡Gracias! Recibimos tu mensaje");
@@ -115,7 +127,7 @@ const UserProfileMenu = ({ onCancel }) => {
   };
 
   const confirmarBorrarCuenta = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "¿Borrar tu cuenta?",
       content:
         "Se eliminarán tu perfil, tus reportes y tus mensajes de forma permanente. Esta acción no se puede deshacer.",
@@ -126,11 +138,11 @@ const UserProfileMenu = ({ onCancel }) => {
       onOk: async () => {
         const { error } = await supabase.rpc("borrar_mi_cuenta");
         if (error) {
-          message.error("No pudimos borrar tu cuenta. Escríbenos a soporte.");
+          message.error(mensajeError(error, "No pudimos borrar tu cuenta. Escríbenos a soporte."));
           return;
         }
         message.success("Tu cuenta y tus datos fueron eliminados");
-        await salir();
+        await salir("local");
       },
     });
   };
@@ -166,24 +178,24 @@ const UserProfileMenu = ({ onCancel }) => {
       </div>
 
       <div className="menu-list">
-        <div className="menu-item" onClick={() => setView("PROFILE")}>
+        <button type="button" className="menu-item" onClick={() => setView("PROFILE")}>
           <div className="item-left">
             <UserOutlined /> <span>Mi Perfil</span>
           </div>
-          <RightOutlined className="arrow-icon" />
-        </div>
-        <div className="menu-item" onClick={abrirHistorial}>
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
+        <button type="button" className="menu-item" onClick={abrirHistorial}>
           <div className="item-left">
             <HistoryOutlined /> <span>Mis Reportes</span>
           </div>
-          <RightOutlined className="arrow-icon" />
-        </div>
-        <div className="menu-item" onClick={() => setView("SUPPORT")}>
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
+        <button type="button" className="menu-item" onClick={() => setView("SUPPORT")}>
           <div className="item-left">
             <CustomerServiceOutlined /> <span>Soporte</span>
           </div>
-          <RightOutlined className="arrow-icon" />
-        </div>
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
       </div>
 
       <div className="menu-footer-centered">
@@ -198,8 +210,9 @@ const UserProfileMenu = ({ onCancel }) => {
     <div className="menu-subview-container">
       <h2 className="subview-title centered">Mi Perfil</h2>
       <div className="minimal-input-group">
-        <label className="input-label">Editar Nombre de Usuario</label>
+        <label className="input-label" htmlFor="perfil-username">Editar Nombre de Usuario</label>
         <Input
+          id="perfil-username"
           placeholder="@usuario"
           value={tempUsername}
           maxLength={20}
@@ -212,27 +225,27 @@ const UserProfileMenu = ({ onCancel }) => {
         />
         <span
           className="setup-hint"
-          style={{ color: mostrarError ? "#ff4d4f" : "#8c8c8c" }}
+          style={{ color: mostrarError ? "#ff4d4f" : "#6b7280" }}
         >
           • Entre 3 y 20 caracteres: letras (a–z), números (0–9) y _ - .
         </span>
-        <span className="setup-hint" style={{ color: "#8c8c8c" }}>
+        <span className="setup-hint" style={{ color: "#6b7280" }}>
           {diasRestantes > 0
             ? `• Podrás cambiarlo en ${diasRestantes} día(s).`
             : `• Tras cambiarlo, no podrás hacerlo de nuevo en ${DIAS_BLOQUEO_USERNAME} días.`}
         </span>
       </div>
       <Divider />
-      <div className="menu-item logout-item-inline" onClick={salir}>
+      <button type="button" className="menu-item logout-item-inline" onClick={() => salir()}>
         <div className="item-left">
           <LogoutOutlined /> <span>Cerrar Sesión</span>
         </div>
-      </div>
-      <div className="menu-item logout-item-inline" onClick={confirmarBorrarCuenta}>
-        <div className="item-left" style={{ color: "#ff4d4f" }}>
+      </button>
+      <button type="button" className="menu-item logout-item-inline" onClick={confirmarBorrarCuenta}>
+        <div className="item-left" style={{ color: "#cf1322" }}>
           <DeleteOutlined /> <span>Borrar mi cuenta y mis datos</span>
         </div>
-      </div>
+      </button>
       <div className="dual-buttons-container">
         <Button
           icon={<ArrowLeftOutlined />}
@@ -270,7 +283,7 @@ const UserProfileMenu = ({ onCancel }) => {
             </div>
           )}
           {historial?.length === 0 && (
-            <p style={{ textAlign: "center", color: "#8c8c8c", margin: "16px 0" }}>
+            <p style={{ textAlign: "center", color: "#6b7280", margin: "16px 0" }}>
               Aún no tienes reportes.
             </p>
           )}
@@ -302,6 +315,7 @@ const UserProfileMenu = ({ onCancel }) => {
       <h2 className="subview-title centered">Soporte</h2>
       <Select
         placeholder="Asunto"
+        aria-label="Asunto"
         className="minimal-select"
         style={{ width: "100%" }}
         value={asunto}
@@ -313,6 +327,8 @@ const UserProfileMenu = ({ onCancel }) => {
         ]}
       />
       <Input.TextArea
+        aria-label="Mensaje"
+        showCount
         rows={4}
         maxLength={2000}
         placeholder="Dinos qué sucede..."

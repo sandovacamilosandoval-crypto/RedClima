@@ -1,6 +1,7 @@
 /* Página de inicio (Landing) */
 .landing-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +54,7 @@
 /* --- Hero y Subtítulo --- */
 .landing-subtitle {
   font-size: 1.25rem;
-  color: #718096;
+  color: #596579;
   margin-bottom: 20px;
   max-width: 550px;
   line-height: 1.4;
@@ -90,7 +91,7 @@
 
 .benefit-card p {
   font-size: 0.9rem;
-  color: #718096;
+  color: #596579;
   margin: 0;
   line-height: 1.5;
 }

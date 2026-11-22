@@ -1,9 +1,28 @@
 import React from 'react';
 import { Circle, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { CLIMA_POR_ID } from '../../constants/clima';
+import { CLIMAS, CLIMA_POR_ID } from '../../constants/clima';
 import { haceCuanto } from '../../lib/formato';
 import './ZonaClima.css';
+
+// Un icono por tipo de clima, creado una sola vez: si se recreara en cada render
+// (el reloj de la página re-renderiza cada 30 s) Leaflet reemplazaría el marcador
+// y la animación volvería a empezar.
+const ICONOS = Object.fromEntries(
+  CLIMAS.map((clima) => [
+    clima.id,
+    L.divIcon({
+      className: "clima-icon-wrapper",
+      html: `
+        <div class="zona-clima-container">
+          <img src="${clima.img}" alt="${clima.label}" class="clima-icon-animated ${clima.anim}" />
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    }),
+  ])
+);
 
 // Una zona agregada que viene de la función zonas_cercanas de Supabase
 const ZonaClima = ({ zona, ahora }) => {
@@ -11,17 +30,6 @@ const ZonaClima = ({ zona, ahora }) => {
 
   const clima = CLIMA_POR_ID[zona.tipo] || CLIMA_POR_ID.soleado;
   const posicion = [zona.lat, zona.lng];
-
-  const icono = L.divIcon({
-    className: "clima-icon-wrapper",
-    html: `
-      <div class="zona-clima-container">
-        <img src="${clima.img}" alt="${clima.label}" class="clima-icon-animated ${clima.anim}" />
-      </div>
-    `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-  });
 
   return (
     <>
@@ -37,7 +45,7 @@ const ZonaClima = ({ zona, ahora }) => {
         }}
         className="animacion-pulso"
       />
-      <Marker position={posicion} icon={icono}>
+      <Marker position={posicion} icon={ICONOS[clima.id]} alt={clima.label}>
         <Popup>
           <strong>{clima.label}</strong>
           <br />

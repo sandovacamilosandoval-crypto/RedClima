@@ -28,7 +28,7 @@ export default function Terminos() {
             importantes.</p>
           <p><strong>7. Ley aplicable.</strong> Estos términos se rigen por las leyes de la República de Colombia.</p>
         </div>
-        <Button type="primary" className="btn-ver-clima" onClick={() => navigate(-1)}>Volver</Button>
+        <Button type="primary" className="btn-ver-clima" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
       </div>
     </div>
   );

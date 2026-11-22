@@ -15,3 +15,16 @@ html, body, #root {
 * {
   box-sizing: border-box; /* Asegura que el padding no estire los elementos */
 }
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

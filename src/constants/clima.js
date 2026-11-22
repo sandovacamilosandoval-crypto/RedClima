@@ -22,6 +22,14 @@ export const UBICACION_DEFECTO = { lat: 4.6097, lng: -74.0817 };
 export const RADIO_BUSQUEDA_M = 20000; // zonas visibles alrededor tuyo
 export const REFRESCO_ZONAS_MS = 60 * 1000;
 
+// Teselas del mapa. tile.openstreetmap.org NO admite tráfico intenso de apps en
+// producción: configura un proveedor con plan (MapTiler, Stadia...) en Vercel.
+export const TILES_URL =
+  import.meta.env.VITE_TILES_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const TILES_ATRIBUCION =
+  import.meta.env.VITE_TILES_ATTRIBUTION ||
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
 // Reglas del nombre de usuario (usadas en registro y perfil)
 export const USERNAME_CHARS = /^[a-z0-9._-]*$/;
 export const DIAS_BLOQUEO_USERNAME = 7;

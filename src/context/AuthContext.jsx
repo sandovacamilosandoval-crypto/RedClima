@@ -12,11 +12,17 @@ async function obtenerPerfil(uid) {
 export function AuthProvider({ children }) {
   // undefined = cargando · null = sin sesión
   const [session, setSession] = useState(undefined);
-  // Guardamos a qué usuario pertenece el perfil para no mostrar datos de otro
-  const [perfilCargado, setPerfilCargado] = useState({ uid: null, datos: undefined });
+  // Guardamos a qué usuario pertenece el perfil para no mostrar datos de otro.
+  // datos: undefined = cargando · null = aún no eligió nombre · objeto = perfil
+  // error: fallo al cargar (red, servidor). NO significa "sin perfil".
+  const [perfilCargado, setPerfilCargado] = useState({ uid: null, datos: undefined, error: null });
+  const [intento, setIntento] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => setSession(null));
     const { data } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
       setSession(nuevaSesion);
     });
@@ -29,29 +35,43 @@ export function AuthProvider({ children }) {
     if (!uid) return;
     let activo = true;
     obtenerPerfil(uid)
-      .then((datos) => activo && setPerfilCargado({ uid, datos }))
-      .catch(() => activo && setPerfilCargado({ uid, datos: null }));
+      .then((datos) => activo && setPerfilCargado({ uid, datos, error: null }))
+      .catch((error) => activo && setPerfilCargado({ uid, datos: undefined, error }));
     return () => {
       activo = false;
     };
-  }, [uid]);
+  }, [uid, intento]);
 
   const refrescarPerfil = useCallback(async () => {
     if (!uid) return null;
     const datos = await obtenerPerfil(uid);
-    setPerfilCargado({ uid, datos });
+    setPerfilCargado({ uid, datos, error: null });
     return datos;
   }, [uid]);
 
-  const cerrarSesion = useCallback(() => supabase.auth.signOut(), []);
+  const reintentarPerfil = useCallback(() => {
+    setPerfilCargado((p) => ({ ...p, error: null }));
+    setIntento((n) => n + 1);
+  }, []);
+
+  // scope "local": solo borra la sesión de este navegador (útil si la cuenta ya no existe)
+  const cerrarSesion = useCallback(async (scope = "global") => {
+    const { error } = await supabase.auth.signOut({ scope });
+    if (error && scope !== "local") await supabase.auth.signOut({ scope: "local" });
+  }, []);
+
+  const esDeEsteUsuario = perfilCargado.uid === uid;
+  const errorPerfil = session && esDeEsteUsuario ? perfilCargado.error : null;
 
   let perfil;
   if (session === undefined) perfil = undefined;
   else if (!session) perfil = null;
-  else perfil = perfilCargado.uid === uid ? perfilCargado.datos : undefined;
+  else perfil = esDeEsteUsuario ? perfilCargado.datos : undefined;
 
   return (
-    <AuthContext.Provider value={{ session, perfil, refrescarPerfil, cerrarSesion }}>
+    <AuthContext.Provider
+      value={{ session, perfil, errorPerfil, reintentarPerfil, refrescarPerfil, cerrarSesion }}
+    >
       {children}
     </AuthContext.Provider>
   );

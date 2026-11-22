@@ -2,6 +2,7 @@
 
 .login-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,7 +55,7 @@
 
 .login-subtitle {
   font-size: 0.95rem;
-  color: #718096;
+  color: #596579;
   margin-bottom: 0px;
   line-height: 1.4;
 }
@@ -70,7 +71,7 @@
 
 .login-checkbox {
   font-size: 13px !important;
-  color: #718096 !important;
+  color: #596579 !important;
   display: flex;
   align-items: center;
 }
@@ -81,7 +82,7 @@
 }
 
 .login-checkbox .link-text {
-  color: #74acff;
+  color: #2b6fd6; /* contraste AA sobre blanco */
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s;
@@ -128,4 +129,20 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+/* Sin aceptar términos el botón sigue siendo clicable (explica qué falta) */
+.btn-google.is-pendiente {
+  opacity: 0.75;
+}
+
+.login-ayuda {
+  margin: 0;
+  font-size: 12px;
+  color: #596579;
+}
+
+.login-checkbox .link-text:focus-visible,
+.btn-google:focus-visible {
+  outline: 3px solid #1a5fd0;
+  outline-offset: 2px;
 }

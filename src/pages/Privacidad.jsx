@@ -54,7 +54,7 @@ export default function Privacidad() {
           <p><strong>8. Autorización.</strong> Al marcar la casilla de aceptación e iniciar sesión, otorgas autorización
             previa, expresa e informada para el tratamiento descrito.</p>
         </div>
-        <Button type="primary" className="btn-ver-clima" onClick={() => navigate(-1)}>Volver</Button>
+        <Button type="primary" className="btn-ver-clima" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
       </div>
     </div>
   );

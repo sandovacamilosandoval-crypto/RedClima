@@ -1,6 +1,7 @@
 /* ESTRUCTURA Y TIPOGRAFÍA (Identidad Login) */
 .ob-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,7 +43,7 @@
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 400;
-  color: #718096;
+  color: #596579;
   line-height: 1.4;
   margin-bottom: 20px;
 }

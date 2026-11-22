@@ -1,5 +1,6 @@
 .setup-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -34,7 +35,7 @@
 
 .setup-text {
   font-size: 0.95rem;
-  color: #718096;
+  color: #596579;
   line-height: 1.5;
   margin-bottom: 20px;
 }
