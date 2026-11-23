@@ -71,3 +71,13 @@
 
 /* Filas clicables con teclado visibles */
 .admin-pagina .ant-table-row:focus-visible { outline: 3px solid #1a5fd0; }
+
+/* Embudo */
+.embudo { display: flex; flex-direction: column; gap: 8px; }
+.embudo-fila { display: grid; grid-template-columns: minmax(140px, 220px) 1fr minmax(120px, auto); gap: 10px; align-items: center; font-size: 13px; }
+.embudo-barra { height: 14px; background: #f1f5f9; border-radius: 7px; overflow: hidden; }
+.embudo-barra > div { height: 100%; background: #1d63d6; border-radius: 7px; }
+.embudo-num small { color: #596579; }
+@media (max-width: 600px) {
+  .embudo-fila { grid-template-columns: 1fr; gap: 2px; }
+}

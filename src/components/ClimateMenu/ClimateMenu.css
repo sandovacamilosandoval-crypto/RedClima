@@ -1,85 +1,7 @@
 .climate-menu-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.climate-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  padding: 5px 0;
-}
-
-.climate-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  min-height: 100px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.climate-icon {
-  width: 60px;
-  height: 60px;
-  margin-bottom: 8px;
-  object-fit: contain;
-  border-radius: 50%;
-  padding: 10px;
-  background: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.climate-option:hover .climate-icon {
-  transform: scale(1.1);
-}
-
-.climate-label {
-  font-weight: 500;
-  font-size: 15px;
-  color: #ffffff;
-  margin-top: 8px;
-}
-
-.soleado  { background: rgba(255, 164, 78, 1); }
-.nublado  { background: rgba(99, 110, 114, 1); }
-.lluvia   { background: rgba(104, 179, 255, 1); }
-.tormenta { background: rgba(54, 61, 63, 1); }
-
-.climate-footer {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding-top: 5px;
-}
-
-.btn-cerrar-clima {
-  height: 40px !important;
-  padding: 0 40px !important;
-  border-radius: 24px !important;
-  font-weight: 600 !important;
-  font-size: 15px !important;
-  border: none !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-  background-color: #ff7875 !important;
-  color: white !important;
-  box-shadow: 0 6px 12px rgba(255, 120, 117, 0.3) !important;
-}
-
-.btn-cerrar-clima:hover {
-  background-color: #ff4d4f !important;
-  transform: scale(1.05) translateY(-2px);
-  color: white !important;
-  box-shadow: 0 8px 15px rgba(255, 77, 79, 0.4) !important;
 }
 
 .climate-title {
@@ -90,20 +12,79 @@
   color: #1a202c;
 }
 
-/* Las opciones son <button> (accesibles con teclado): quitar estilos del navegador */
-button.climate-option {
-  font: inherit;
-  color: inherit;
-  width: 100%;
-  appearance: none;
+/* 8 opciones en 2 columnas, de menos a más intenso */
+.climate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
+
+.climate-option {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid #e7ebf0;
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+  color: #1a202c;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.climate-option:hover {
+  border-color: var(--clima);
+  background: color-mix(in srgb, var(--clima) 8%, #fff);
+}
+
+.climate-option:active { transform: scale(0.97); }
 
 .climate-option:focus-visible {
   outline: 3px solid #1a5fd0;
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .climate-option:disabled {
   cursor: wait;
   opacity: 0.7;
+}
+
+.climate-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--clima) 14%, #fff);
+}
+
+.climate-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.climate-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-cerrar-clima {
+  height: 40px !important;
+  padding: 0 40px !important;
+  border-radius: 24px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  background-color: #ff7875 !important;
+  color: white !important;
+}
+
+.btn-cerrar-clima:hover {
+  background-color: #ff4d4f !important;
 }

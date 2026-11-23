@@ -10,6 +10,7 @@ import {
 } from "../constants/clima";
 import { supabase } from "../lib/supabase";
 import { mensajeError } from "../lib/errores";
+import { registrarPaso } from "../lib/embudo";
 import { useAuth } from "../context/AuthContext";
 import "./UserSetup.css";
 
@@ -37,6 +38,7 @@ export default function UserSetup() {
         message.error(mensajeError(error, "No pudimos crear tu perfil. Inténtalo de nuevo."));
         return;
       }
+      registrarPaso("registro");
       await refrescarPerfil();
       navigate("/tutorial", { replace: true });
     } catch (error) {

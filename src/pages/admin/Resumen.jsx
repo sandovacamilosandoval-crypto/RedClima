@@ -34,11 +34,47 @@ function Barras({ valores, etiquetas, color = "#1d63d6", alto = 120 }) {
   );
 }
 
+const NOMBRES_PASO = {
+  landing: "Visitaron la página",
+  clic_ver_mapa: "Tocaron «Ver el mapa»",
+  login: "Iniciaron sesión",
+  registro: "Eligieron usuario",
+  primer_reporte: "Hicieron su primer reporte",
+};
+
+// Cuántas visitas avanzan en cada paso (anónimo, un id por navegador)
+function Embudo({ pasos }) {
+  const inicio = pasos[0]?.sesiones || 0;
+  if (!pasos.length) return <p className="admin-vacio">Sin datos aún.</p>;
+  return (
+    <div className="embudo">
+      {pasos.map((p, i) => {
+        const pct = inicio ? Math.round((p.sesiones / inicio) * 100) : 0;
+        const previo = i > 0 ? pasos[i - 1].sesiones : null;
+        const paso = previo ? Math.round((p.sesiones / previo) * 100) : null;
+        return (
+          <div key={p.paso} className="embudo-fila">
+            <span className="embudo-nombre">{NOMBRES_PASO[p.paso] ?? p.paso}</span>
+            <div className="embudo-barra">
+              <div style={{ width: `${Math.max(pct, p.sesiones ? 2 : 0)}%` }} />
+            </div>
+            <span className="embudo-num">
+              <strong>{p.sesiones}</strong>
+              {paso !== null && <small> · {paso}% del paso anterior</small>}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Resumen() {
   const { abrirUsuario } = useAdmin();
   const [horas, setHoras] = useState(24);
   const [busqueda, setBusqueda] = useState("");
   const { data: r, error, cargando } = useRpc("admin_resumen", { p_horas: horas });
+  const embudo = useRpc("admin_embudo", { p_horas: horas });
 
   return (
     <div className="admin-pagina">
@@ -146,6 +182,10 @@ export default function Resumen() {
                 </Card>
               </Col>
             </Row>
+
+            <Card size="small" title={`Embudo de conversión (${nombrePeriodo(horas)})`} style={{ marginTop: 12 }}>
+              <Embudo pasos={embudo.data ?? []} />
+            </Card>
 
             <Card size="small" title={`Reporteros más activos (${nombrePeriodo(horas)})`} style={{ marginTop: 12 }}>
               {r.top_reporteros?.length ? (

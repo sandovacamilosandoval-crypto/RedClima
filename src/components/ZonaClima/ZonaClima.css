@@ -1,55 +1,28 @@
-/* --- Estilos del Círculo (SVG Leaflet) --- */
-.animacion-pulso {
-  /* En SVG se usa stroke-dasharray para efectos, 
-     pero la animación de opacidad funciona bien */
-  animation: aparecerZona 0.6s ease-out forwards;
+/* Zonas hexagonales */
+.zona-hex {
+  animation: aparecerZona 0.5s ease-out;
 }
 
 @keyframes aparecerZona {
-  from { opacity: 0; transform: scale(0.5); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* --- Contenedor del Icono Animado --- */
-.zona-clima-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
+.zona-icono-wrapper { background: none; border: none; }
+
+.zona-icono {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 2px solid var(--clima);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
-.clima-icon-animated {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-/* --- Animaciones de los Iconos --- */
-.anim-soleado { animation: pulse-sun 3s infinite ease-in-out; }
-.anim-lluvia { animation: rain-drop 0.8s infinite linear; }
-.anim-nublado { animation: drift 4s infinite ease-in-out; }
-.anim-tormenta { animation: shake-flash 0.5s infinite; }
-
-@keyframes pulse-sun {
-  0%, 100% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.1); filter: brightness(1.2) drop-shadow(0 0 8px gold); }
-}
-
-@keyframes rain-drop {
-  0%, 100% { transform: translateY(-3px); }
-  50% { transform: translateY(3px); }
-}
-
-@keyframes drift {
-  0%, 100% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-}
-
-@keyframes shake-flash {
-  0% { transform: translate(1px, 1px); }
-  50% { transform: translate(-1px, -1px); filter: brightness(1.4); }
-  100% { transform: translate(1px, 1px); }
+@media (prefers-reduced-motion: reduce) {
+  .zona-hex { animation: none; }
 }
 
 /* Ventana al tocar una zona: lo primero es hace cuánto se reportó */
@@ -92,4 +65,10 @@
 .zona-popup-denunciar:focus-visible {
   outline: 2px solid #1a5fd0;
   outline-offset: 2px;
+}
+
+.zona-popup-viejo {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #8a5a00;
 }

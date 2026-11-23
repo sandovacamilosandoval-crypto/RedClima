@@ -1,0 +1,80 @@
+.buscador { position: relative; width: 100%; }
+
+.buscador-caja {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px 0 14px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.buscador.compacto .buscador-caja {
+  height: 42px;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+}
+
+.buscador-caja input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 16px; /* evita el zoom automático en iPhone */
+  color: #1a202c;
+}
+
+.buscador-caja input::-webkit-search-cancel-button { display: none; }
+
+.buscador-caja:focus-within { box-shadow: 0 0 0 3px rgba(29, 99, 214, 0.35), 0 4px 15px rgba(0, 0, 0, 0.1); }
+
+.buscador-limpiar {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.buscador-limpiar:hover { background: #f1f5f9; }
+
+.buscador-lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.buscador-op {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.buscador-op.activa,
+.buscador-op:hover { background: #f1f6ff; }
+
+.buscador-op span { display: flex; flex-direction: column; min-width: 0; }
+.buscador-op strong { font-size: 14px; color: #1a202c; }
+.buscador-op small { font-size: 12px; color: #596579; }
+
+.buscador-info { padding: 10px; font-size: 13px; color: #596579; }

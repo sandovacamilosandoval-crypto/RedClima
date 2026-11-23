@@ -11,6 +11,7 @@ import {
   MessageOutlined,
   DashboardOutlined,
   TrophyOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/icono.png";
@@ -28,12 +29,13 @@ import { mensajeError } from "../lib/errores";
 import { NIVELES, XP_POR_REPORTE, infoNivel } from "../constants/niveles";
 import SoporteForm from "./Soporte/SoporteForm";
 import MisMensajes from "./Soporte/MisMensajes";
+import MisZonas from "./MisZonas/MisZonas";
 import "./UserProfileMenu.css";
 
 const formatXP = (xp) =>
   xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(xp);
 
-const UserProfileMenu = ({ onCancel, ubicacion }) => {
+const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
   const navigate = useNavigate();
   const { perfil, rol, noLeidas, refrescarPerfil, cerrarSesion } = useAuth();
   const { message, modal } = App.useApp();
@@ -172,6 +174,12 @@ const UserProfileMenu = ({ onCancel, ubicacion }) => {
         <button type="button" className="menu-item" onClick={abrirHistorial}>
           <div className="item-left">
             <HistoryOutlined /> <span>Mis Reportes</span>
+          </div>
+          <RightOutlined className="arrow-icon" aria-hidden="true" />
+        </button>
+        <button type="button" className="menu-item" onClick={() => setView("ZONAS")}>
+          <div className="item-left">
+            <EnvironmentOutlined /> <span>Mis zonas de interés</span>
           </div>
           <RightOutlined className="arrow-icon" aria-hidden="true" />
         </button>
@@ -362,6 +370,7 @@ const UserProfileMenu = ({ onCancel, ubicacion }) => {
       {view === "PROFILE" && renderProfile()}
       {view === "HISTORY" && renderHistory()}
       {view === "NIVELES" && renderNiveles()}
+      {view === "ZONAS" && <MisZonas ubicacion={ubicacion} onVolver={() => setView("HUB")} onIrA={onIrA} />}
       {view === "SUPPORT" && (
         <SoporteForm
           ubicacion={ubicacion}

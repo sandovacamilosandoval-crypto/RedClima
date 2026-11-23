@@ -79,7 +79,8 @@ function App() {
   return (
     <ConfigProvider locale={esES} theme={{ token: { colorPrimary: "#74acff", borderRadius: 12 } }}>
       {/* AntApp da acceso a message/modal con el tema y el idioma (App.useApp) */}
-      <AntApp>
+      {/* Los avisos aparecen debajo de la barra de búsqueda del mapa */}
+      <AntApp message={{ top: 76, maxCount: 3 }}>
         <AuthProvider>
           <Router>
             <Suspense fallback={<Cargando />}>

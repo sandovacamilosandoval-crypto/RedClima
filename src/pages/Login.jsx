@@ -4,6 +4,7 @@ import { Link, Navigate } from "react-router-dom";
 import logo from "../components/assets/icono.png";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { registrarPaso } from "../lib/embudo";
 import "./Login.css";
 
 const CLAVE_ACEPTO = "redclima:acepto-terminos";
@@ -51,6 +52,11 @@ export default function Login() {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [message]);
+
+  // Embudo: inició sesión (una vez por navegador)
+  useEffect(() => {
+    if (session) registrarPaso("login");
+  }, [session]);
 
   // Al volver de Google ya hay sesión: enviar a donde corresponda
   if (session && (perfil || errorPerfil)) return <Navigate to="/mapa" replace />;

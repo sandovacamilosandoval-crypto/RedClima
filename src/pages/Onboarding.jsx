@@ -7,6 +7,7 @@ import './Onboarding.css';
 import logoApp from '../components/assets/icono.png';
 import gpsImg from '../components/assets/gps.png';
 import { CLIMAS, DURACION_REPORTE_MIN } from '../constants/clima';
+import Icono from '../components/Icono';
 
 export default function Onboarding() {
   const [current, setCurrent] = useState(0);
@@ -20,12 +21,12 @@ export default function Onboarding() {
     },
     {
       title: "Como funciona RedClima",
-      text: "Los colores del mapa muestran el clima en cada zona.",
+      text: "Cada hexágono del mapa muestra el clima que reportan los vecinos de esa zona.",
       media: (
         <div className="ob-grid-container">
           {CLIMAS.map((opt) => (
-            <div key={opt.id} className={`ob-grid-item ${opt.id}`}>
-              <img src={opt.img} alt={opt.label} />
+            <div key={opt.id} className="ob-grid-item" style={{ '--clima': opt.color }}>
+              <Icono nodo={opt.icono} tamano={22} color={opt.color} />
               <span>{opt.label}</span>
             </div>
           ))}

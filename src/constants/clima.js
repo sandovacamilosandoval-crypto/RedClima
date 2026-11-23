@@ -1,14 +1,17 @@
 // Fuente única de verdad para los tipos de clima y reglas compartidas.
-import soleado from "../components/assets/soleado.png";
-import nublado from "../components/assets/nublado.png";
-import lluvia from "../components/assets/lluvia.png";
-import tormenta from "../components/assets/tormenta.png";
+import { Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudLightning, CloudHail } from "lucide";
 
+// 8 tipos, de menos a más intenso. Deben coincidir con public.clima_tipo.
+// Cada uno con nombre visible (los iconos solos confunden) y un color distinto.
 export const CLIMAS = [
-  { id: "soleado", label: "Soleado", img: soleado, color: "#ffa44e", anim: "anim-soleado" },
-  { id: "nublado", label: "Nublado", img: nublado, color: "#95a5a6", anim: "anim-nublado" },
-  { id: "lluvia", label: "Lluvia", img: lluvia, color: "#3498db", anim: "anim-lluvia" },
-  { id: "tormenta", label: "Tormenta", img: tormenta, color: "#2c3e50", anim: "anim-tormenta" },
+  { id: "soleado", label: "Soleado", icono: Sun, color: "#F2A900" },
+  { id: "parcial", label: "Sol y nubes", icono: CloudSun, color: "#F5C451" },
+  { id: "nublado", label: "Nublado", icono: Cloud, color: "#8C96A3" },
+  { id: "niebla", label: "Neblina", icono: CloudFog, color: "#A99F95" },
+  { id: "llovizna", label: "Llovizna", icono: CloudDrizzle, color: "#5DADE2" },
+  { id: "lluvia", label: "Lluvia", icono: CloudRain, color: "#2563C9" },
+  { id: "tormenta", label: "Tormenta eléctrica", icono: CloudLightning, color: "#6D3FC0" },
+  { id: "granizo", label: "Granizo", icono: CloudHail, color: "#0E9AA7" },
 ];
 
 export const CLIMA_POR_ID = Object.fromEntries(CLIMAS.map((c) => [c.id, c]));
@@ -20,16 +23,23 @@ export const DURACION_REPORTE_MIN = 30;
 
 // Centro del mapa mientras no tengamos tu GPS (Bogotá)
 export const UBICACION_DEFECTO = { lat: 4.6097, lng: -74.0817 };
-export const RADIO_BUSQUEDA_M = 20000; // zonas visibles alrededor tuyo
+export const RADIO_BUSQUEDA_M = 20000; // zonas visibles alrededor del centro del mapa
+export const LADO_HEX_M = 500; // tamaño de las zonas hexagonales (centro → vértice)
 export const REFRESCO_ZONAS_MS = 60 * 1000;
 
-// Teselas del mapa. tile.openstreetmap.org NO admite tráfico intenso de apps en
-// producción: configura un proveedor con plan (MapTiler, Stadia...) en Vercel.
+// Mapa base minimalista: CARTO Positron con la clave gratuita (VITE_CARTO_KEY).
+// Sin clave, OpenStreetMap con un filtro suave (clase "mapa-suave").
+const CLAVE_CARTO = import.meta.env.VITE_CARTO_KEY;
 export const TILES_URL =
-  import.meta.env.VITE_TILES_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+  import.meta.env.VITE_TILES_URL ||
+  (CLAVE_CARTO
+    ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${CLAVE_CARTO}`
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+export const MAPA_SUAVE = !CLAVE_CARTO && !import.meta.env.VITE_TILES_URL;
 export const TILES_ATRIBUCION =
   import.meta.env.VITE_TILES_ATTRIBUTION ||
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
+    (CLAVE_CARTO ? ' &copy; <a href="https://carto.com/attributions">CARTO</a>' : "");
 
 // Reglas del nombre de usuario (usadas en registro y perfil)
 export const USERNAME_CHARS = /^[a-z0-9._-]*$/;
