@@ -66,6 +66,40 @@ const guardar = (k, v) => {
   }
 };
 const esIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const esAndroid = () => /Android/i.test(navigator.userAgent);
+
+// La base de datos solo acepta reportes con precisión de 500 m o mejor
+const PRECISION_MAXIMA_M = 500;
+
+function ComoActivarPrecision() {
+  if (esIOS()) {
+    return (
+      <ol className="pasos-precision">
+        <li>Abre <strong>Ajustes › Privacidad y seguridad › Localización</strong>.</li>
+        <li>Entra en <strong>Safari</strong> (o el navegador que uses).</li>
+        <li>Activa <strong>Ubicación exacta</strong> y vuelve aquí.</li>
+      </ol>
+    );
+  }
+  if (esAndroid()) {
+    return (
+      <ol className="pasos-precision">
+        <li>Abre <strong>Ajustes › Ubicación</strong> y verifica que esté activada.</li>
+        <li>Activa <strong>Precisión de la ubicación de Google</strong> (o "Usar ubicación precisa").</li>
+        <li>Si el navegador pregunta, elige <strong>Precisa</strong> en vez de Aproximada.</li>
+      </ol>
+    );
+  }
+  return (
+    <p className="pasos-precision-texto">
+      Parece que estás en un computador: sin GPS, tu ubicación se calcula por internet y puede fallar por varios
+      kilómetros. <strong>Reporta desde tu celular</strong> con el GPS activado; aquí puedes seguir buscando lugares y
+      viendo el pronóstico.
+    </p>
+  );
+}
+
+const formatoDistancia = (m) => (m >= 1000 ? `${(m / 1000).toFixed(1).replace(".", ",")} km` : `${Math.round(m)} m`);
 
 // Redondeo a ~1 km: las zonas solo se vuelven a pedir si el centro cambió de verdad
 const redondear = (v) => Math.round(v * 100) / 100;
@@ -124,6 +158,9 @@ function MapPage() {
     }
   });
   const gpsEstado = ubicacion ? "ok" : gpsError ? "error" : "buscando";
+  // Ubicación aproximada (computador sin GPS, o celular sin "ubicación exacta")
+  const precisionMala = !!ubicacion && ubicacion.precision > PRECISION_MAXIMA_M;
+  const [avisoPrecision, setAvisoPrecision] = useState(false);
 
   // Lo que se está mirando: tu zona, un lugar buscado o donde moviste el mapa
   const [centro, setCentro] = useState(null);
@@ -407,6 +444,14 @@ function MapPage() {
       enviandoRef.current = false;
       setEnviando(false);
     }
+  };
+
+  const abrirReporte = () => {
+    if (precisionMala) {
+      setAvisoPrecision(true);
+      return;
+    }
+    setIsModalOpen(true);
   };
 
   const handleReportSelection = (clima) => {
@@ -694,12 +739,22 @@ function MapPage() {
                       type="primary"
                       size="large"
                       className="btn-unlock"
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={abrirReporte}
                       disabled={gpsEstado !== "ok"}
                     >
                       {gpsEstado === "ok" ? "Reportar el clima" : "Ubicándote…"}
                     </Button>
-                    <p className="lock-nota">Cada reporte suma {XP_POR_REPORTE} XP para subir de nivel.</p>
+                    {precisionMala ? (
+                      <p className="lock-aviso-precision" role="status">
+                        ⚠️ Tu ubicación es aproximada (±{formatoDistancia(ubicacion.precision)}). Para reportar
+                        necesitamos 500 m o menos.{" "}
+                        <button type="button" onClick={() => setAvisoPrecision(true)}>
+                          ¿Cómo lo arreglo?
+                        </button>
+                      </p>
+                    ) : (
+                      <p className="lock-nota">Cada reporte suma {XP_POR_REPORTE} XP para subir de nivel.</p>
+                    )}
                   </>
                 )}
               </div>
@@ -708,7 +763,7 @@ function MapPage() {
         </div>
       </Content>
 
-      {desbloqueado && <ReportButton onClick={() => setIsModalOpen(true)} />}
+      {desbloqueado && <ReportButton onClick={abrirReporte} />}
 
       <Modal open={isMenuOpen} onCancel={() => setIsMenuOpen(false)} footer={null} centered width={380} closable={false} destroyOnHidden>
         <UserProfileMenu
@@ -738,6 +793,36 @@ function MapPage() {
             onConfirm={() => enviarReporte(confirmData.clima)}
           />
         )}
+      </Modal>
+
+      <Modal
+        open={avisoPrecision}
+        onCancel={() => setAvisoPrecision(false)}
+        centered
+        width={380}
+        title="Tu ubicación es aproximada"
+        footer={[
+          <Button key="cerrar" onClick={() => setAvisoPrecision(false)}>
+            Entendido
+          </Button>,
+          <Button
+            key="reintentar"
+            type="primary"
+            onClick={() => {
+              setAvisoPrecision(false);
+              reintentarGps();
+            }}
+          >
+            Ya lo activé, reintentar
+          </Button>,
+        ]}
+      >
+        <p className="denuncia-texto">
+          Tu dispositivo nos da tu ubicación con un margen de{" "}
+          <strong>{ubicacion ? formatoDistancia(ubicacion.precision) : "varios kilómetros"}</strong>. Para que tu reporte
+          caiga en la zona correcta necesitamos un margen de 500 m o menos.
+        </p>
+        <ComoActivarPrecision />
       </Modal>
 
       <Modal
