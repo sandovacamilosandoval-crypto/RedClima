@@ -31,7 +31,7 @@ const ZonaClima = ({ zona, ahora, onDenunciar }) => {
 
   const clima = CLIMA_POR_ID[zona.tipo] || CLIMA_POR_ID.soleado;
   const posicion = [zona.lat, zona.lng];
-  const personas = zona.reportes === 1 ? "1 reporte" : `${zona.reportes} reportes`;
+  const personas = zona.reportes === 1 ? "1 persona" : `${zona.reportes} personas`;
 
   return (
     <>
