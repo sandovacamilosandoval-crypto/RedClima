@@ -369,3 +369,24 @@
 
 .lock-card > .ant-btn { width: 100%; }
 .chip-pronostico { border: 1px solid var(--borde); box-shadow: var(--sombra-flotante); border-radius: 9999px; }
+
+/* Aviso de ubicación imprecisa (margen > 100 m) */
+.chip-precision {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: calc(100% - 96px);
+  padding: 8px 14px;
+  border: 1px solid #f3d9a4;
+  border-radius: 9999px;
+  background: #fff8e6;
+  color: #6b4500;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--sombra-flotante);
+  cursor: pointer;
+}
+.chip-precision:focus-visible { outline: 3px solid var(--oscuro); outline-offset: 2px; }

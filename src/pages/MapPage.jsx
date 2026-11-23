@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { App, Layout, Modal, Spin, Button, Input } from "antd";
 import { MenuOutlined, CloseOutlined } from "@ant-design/icons";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LocateFixed, MapPin, Star } from "lucide";
@@ -73,6 +73,8 @@ const esAndroid = () => /Android/i.test(navigator.userAgent);
 
 // La base de datos solo acepta reportes con precisión de 500 m o mejor
 const PRECISION_MAXIMA_M = 500;
+// Desde este margen avisamos que el punto puede no ser exacto
+const PRECISION_AVISO_M = 100;
 
 function ComoActivarPrecision() {
   if (esIOS()) {
@@ -81,6 +83,7 @@ function ComoActivarPrecision() {
         <li>Abre <strong>Ajustes › Privacidad y seguridad › Localización</strong>.</li>
         <li>Entra en <strong>Safari</strong> (o el navegador que uses).</li>
         <li>Activa <strong>Ubicación exacta</strong> y vuelve aquí.</li>
+        <li>Activa el <strong>Wi-Fi</strong> (aunque no te conectes): mejora mucho la precisión dentro de casa.</li>
       </ol>
     );
   }
@@ -90,6 +93,7 @@ function ComoActivarPrecision() {
         <li>Abre <strong>Ajustes › Ubicación</strong> y verifica que esté activada.</li>
         <li>Activa <strong>Precisión de la ubicación de Google</strong> (o "Usar ubicación precisa").</li>
         <li>Si el navegador pregunta, elige <strong>Precisa</strong> en vez de Aproximada.</li>
+        <li>Activa el <strong>Wi-Fi</strong> (aunque no te conectes): mejora mucho la precisión dentro de casa.</li>
       </ol>
     );
   }
@@ -163,6 +167,8 @@ function MapPage() {
   const gpsEstado = ubicacion ? "ok" : gpsError ? "error" : "buscando";
   // Ubicación aproximada (computador sin GPS, o celular sin "ubicación exacta")
   const precisionMala = !!ubicacion && ubicacion.precision > PRECISION_MAXIMA_M;
+  // Margen visible: el teléfono no está seguro de dónde estás (aún se puede reportar)
+  const precisionDudosa = !!ubicacion && ubicacion.precision > PRECISION_AVISO_M;
   const [avisoPrecision, setAvisoPrecision] = useState(false);
 
   // Lo que se está mirando: tu zona, un lugar buscado o donde moviste el mapa
@@ -619,6 +625,15 @@ function MapPage() {
               eventHandlers={{ tileerror: alFallarTesela }}
             />
             <ControlMapa destino={destino} onMover={alMover} />
+            {ubicacion && (
+              // Círculo de precisión: el teléfono te ubica en algún punto dentro de él
+              <Circle
+                center={[ubicacion.lat, ubicacion.lng]}
+                radius={ubicacion.precision}
+                interactive={false}
+                pathOptions={{ color: "#2f6fde", weight: 1, opacity: 0.5, fillColor: "#4f8cff", fillOpacity: 0.12 }}
+              />
+            )}
             {ubicacion && <Marker position={[ubicacion.lat, ubicacion.lng]} icon={ICONO_YO} alt="Tu ubicación" interactive={false} />}
             {desbloqueado &&
               zonas.map((z, i) => (
@@ -647,6 +662,12 @@ function MapPage() {
           <button type="button" className="btn-mapa btn-mi-ubicacion" onClick={volverAMiUbicacion} aria-label="Ir a mi ubicación">
             <Icono nodo={LocateFixed} tamano={20} color="#1d63d6" />
           </button>
+
+          {desbloqueado && precisionDudosa && (
+            <button type="button" className="chip-precision" onClick={() => setAvisoPrecision(true)}>
+              Ubicación imprecisa: ±{formatoDistancia(ubicacion.precision)} · ¿Cómo mejorarla?
+            </button>
+          )}
 
           {gpsEstado === "buscando" && (
             <div className="chip-ubicando" role="status">
@@ -777,7 +798,7 @@ function MapPage() {
         onCancel={() => setAvisoPrecision(false)}
         centered
         width={380}
-        title="Tu ubicación es aproximada"
+        title={precisionMala ? "Tu ubicación es aproximada" : "Tu ubicación puede estar corrida"}
         footer={[
           <Button key="cerrar" onClick={() => setAvisoPrecision(false)}>
             Entendido
@@ -795,9 +816,12 @@ function MapPage() {
         ]}
       >
         <p className="denuncia-texto">
-          Tu dispositivo nos da tu ubicación con un margen de{" "}
-          <strong>{ubicacion ? formatoDistancia(ubicacion.precision) : "varios kilómetros"}</strong>. Para que tu reporte
-          caiga en la zona correcta necesitamos un margen de 500 m o menos.
+          Tu teléfono te ubica con un margen de{" "}
+          <strong>{ubicacion ? formatoDistancia(ubicacion.precision) : "varios kilómetros"}</strong>: el punto azul puede no
+          estar exactamente donde estás.{" "}
+          {precisionMala
+            ? "Para reportar necesitamos 500 m o menos."
+            : "Puedes reportar, pero con un margen menor tu reporte cae en la zona correcta."}
         </p>
         <ComoActivarPrecision />
       </Modal>
