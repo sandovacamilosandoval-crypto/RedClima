@@ -364,3 +364,28 @@
 
 /* El buscador ocupa el espacio libre sin empujar el botón del menú fuera de la pantalla */
 .barra-superior .buscador { flex: 1; min-width: 0; width: auto; }
+
+/* Ubicación aproximada */
+.lock-aviso-precision {
+  margin: 14px 0 0 !important;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff6e5;
+  color: #6b4500 !important;
+  font-size: 13px;
+  text-align: left;
+}
+
+.lock-aviso-precision button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #1d63d6;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pasos-precision { margin: 0; padding-left: 20px; color: #3d4451; line-height: 1.6; }
+.pasos-precision-texto { margin: 0; color: #3d4451; }
