@@ -4,12 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../components/assets/icono.png';
 import { supabase } from '../lib/supabase';
 import { DURACION_REPORTE_MIN } from '../constants/clima';
+import { registrarPaso } from '../lib/embudo';
 import './Landing.css';
 
 export default function Landing() {
   const navigate = useNavigate();
   // Contador real de la última hora (solo totales, sin ubicaciones)
   const [actividad, setActividad] = useState(null);
+
+  useEffect(() => {
+    registrarPaso('landing');
+  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -66,7 +71,10 @@ export default function Landing() {
           <Button
             type="primary"
             className="btn-ver-clima"
-            onClick={() => navigate('/login')}
+            onClick={() => {
+              registrarPaso('clic_ver_mapa');
+              navigate('/login');
+            }}
           >
             Ver el mapa en vivo
           </Button>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from 'antd';
 import { CLIMAS } from '../../constants/clima';
+import Icono from '../Icono';
 import './ClimateMenu.css';
 
 const ClimateMenu = ({ onSelect, onCancel, disabled = false }) => {
@@ -12,22 +13,21 @@ const ClimateMenu = ({ onSelect, onCancel, disabled = false }) => {
           <button
             type="button"
             key={option.id}
-            className={`climate-option ${option.id}`}
+            className="climate-option"
+            style={{ '--clima': option.color }}
             onClick={() => onSelect(option)}
             disabled={disabled}
           >
-            <img src={option.img} alt="" className="climate-icon" />
+            <span className="climate-icon">
+              <Icono nodo={option.icono} tamano={26} color={option.color} />
+            </span>
             <span className="climate-label">{option.label}</span>
           </button>
         ))}
       </div>
 
       <div className="climate-footer">
-        <Button
-          type="primary"
-          className="btn-cerrar-clima"
-          onClick={onCancel}
-        >
+        <Button type="primary" className="btn-cerrar-clima" onClick={onCancel}>
           Cerrar
         </Button>
       </div>

@@ -41,6 +41,15 @@ export default function Privacidad() {
             Los reportes se muestran <em>agrupados en zonas</em> con coordenadas redondeadas (~100 m), nunca tu ubicación
             exacta ni quién reportó.</p>
 
+          <p><strong>4.2 Zonas de interés y búsqueda.</strong> Si guardas zonas de interés (por ejemplo, tu trabajo), las
+            guardamos redondeadas a ~100 m y solo tú las ves; te avisamos cuando alguien reporta el clima cerca. Al buscar
+            un lugar, el texto que escribes se envía a Photon (komoot, basado en OpenStreetMap) y, para el pronóstico, las
+            coordenadas aproximadas del mapa se envían a Open-Meteo. Ninguno recibe tu nombre ni tu correo.</p>
+
+          <p><strong>4.3 Medición de uso.</strong> Contamos de forma anónima cuántas visitas avanzan por cada paso
+            (página de inicio, inicio de sesión, registro y primer reporte) con un identificador aleatorio guardado en tu
+            navegador. No incluye datos personales.</p>
+
           <p><strong>4.1 Equipo de moderación.</strong> Para prevenir abusos, el equipo de RedClima puede ver tus reportes,
             tus mensajes de soporte y, solo los administradores, tu correo y tu zona habitual aproximada (~1 km). Puede
             advertir, suspender cuentas u ocultar reportes falsos. Toda acción de moderación queda registrada con su motivo

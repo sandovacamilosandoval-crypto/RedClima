@@ -1,20 +1,26 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { App, Layout, Modal, Spin, Button, Input } from "antd";
 import { MenuOutlined, CloseOutlined } from "@ant-design/icons";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { LocateFixed, MapPin, Star } from "lucide";
 import ReportButton from "../components/ReportButton/ReportButton";
 import ClimateMenu from "../components/ClimateMenu/ClimateMenu";
 import ZonaClima from "../components/ZonaClima/ZonaClima";
 import ConfirmReport from "../components/ConfirmReport/ConfirmReport";
 import UserProfileMenu from "../components/UserProfileMenu";
+import Buscador from "../components/Buscador/Buscador";
+import Icono from "../components/Icono";
 import {
+  CLIMAS,
   CLIMA_POR_ID,
   UBICACION_DEFECTO,
   RADIO_BUSQUEDA_M,
   REFRESCO_ZONAS_MS,
   TILES_URL,
   TILES_ATRIBUCION,
+  MAPA_SUAVE,
   DURACION_REPORTE_MIN,
   distanciaMetros,
 } from "../constants/clima";
@@ -23,24 +29,13 @@ import { supabase } from "../lib/supabase";
 import { mensajeError } from "../lib/errores";
 import { contextoApp } from "../lib/contexto";
 import { compartirRedClima } from "../lib/compartir";
+import { obtenerPronostico } from "../lib/pronostico";
+import { registrarPaso } from "../lib/embudo";
+import { svgIcono } from "../lib/iconos";
 import { useAuth } from "../context/AuthContext";
 import "./MapPage.css";
 
 const { Content } = Layout;
-
-// Centra el mapa solo la primera vez que llega tu ubicación (y tras "Reintentar"),
-// para no pelear con el usuario cuando mueve el mapa mientras el GPS se actualiza.
-function RecenterMap({ coords, intento }) {
-  const map = useMap();
-  const centradoEn = useRef(null);
-  useEffect(() => {
-    if (coords && centradoEn.current !== intento) {
-      centradoEn.current = intento;
-      map.setView([coords.lat, coords.lng], 15);
-    }
-  }, [coords, intento, map]);
-  return null;
-}
 
 const OPCIONES_GPS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
 
@@ -51,11 +46,57 @@ const TEXTO_ERROR_GPS = {
   "sin-soporte": "Tu navegador no permite obtener la ubicación. Prueba con otro navegador.",
 };
 
-// Redondeo a ~100 m: las zonas solo se vuelven a pedir si te moviste de verdad
-const redondear = (v) => (v === undefined ? undefined : Math.round(v * 1000) / 1000);
+// Lo que recordamos en este navegador para no repetir preguntas
+const CLAVE_GPS_OK = "redclima:gps-aceptado";
+const CLAVE_ULTIMA_POS = "redclima:ultima-posicion";
+const CLAVE_TIP_IOS = "redclima:tip-ios-visto";
+const leer = (k) => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+const guardar = (k, v) => {
+  try {
+    localStorage.setItem(k, v);
+  } catch {
+    // modo privado: solo se pierde la comodidad
+  }
+};
+const esIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// Redondeo a ~1 km: las zonas solo se vuelven a pedir si el centro cambió de verdad
+const redondear = (v) => Math.round(v * 100) / 100;
+
+const ICONO_LUGAR = L.divIcon({
+  className: "lugar-icono-wrapper",
+  html: `<div class="lugar-icono">${svgIcono(MapPin, { tamano: 30, color: "#1d63d6", grosor: 2.2 })}</div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 28],
+  popupAnchor: [0, -26],
+});
+
+const ICONO_YO = L.divIcon({ className: "yo-icono", iconSize: [16, 16], iconAnchor: [8, 8] });
+
+// Mueve el mapa cuando se elige un destino (búsqueda, zona de interés, "mi ubicación")
+// y avisa cuando el usuario termina de moverlo
+function ControlMapa({ destino, onMover }) {
+  const map = useMap();
+  useEffect(() => {
+    if (destino) map.flyTo([destino.lat, destino.lng], destino.zoom ?? 15, { duration: 0.8 });
+  }, [destino, map]);
+  useMapEvents({
+    moveend: () => {
+      const c = map.getCenter();
+      onMover({ lat: c.lat, lng: c.lng });
+    },
+  });
+  return null;
+}
 
 function MapPage() {
-  const { perfil, refrescarPerfil, noLeidas } = useAuth();
+  const { perfil, refrescarPerfil, refrescarNotificaciones, noLeidas } = useAuth();
   const { message, modal } = App.useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,18 +105,36 @@ function MapPage() {
   const [enviando, setEnviando] = useState(false);
   const enviandoRef = useRef(false); // evita dobles envíos antes de que React re-renderice
 
-  // Permiso de ubicación: primero explicamos para qué la usamos y luego la pedimos.
-  // 'verificando' | 'explicar' | 'listo'
-  const [permisoGps, setPermisoGps] = useState(() => (navigator.geolocation ? "verificando" : "listo"));
+  // Permiso de ubicación: se explica una sola vez; luego se recuerda en este navegador
+  const [permisoGps, setPermisoGps] = useState(() => {
+    if (!navigator.geolocation) return "listo";
+    return leer(CLAVE_GPS_OK) ? "listo" : "verificando";
+  });
   const [ubicacion, setUbicacion] = useState(null);
   const [gpsError, setGpsError] = useState(() => (navigator.geolocation ? null : "sin-soporte"));
   const [intentoGps, setIntentoGps] = useState(0);
+  const [tipIOS, setTipIOS] = useState(false);
+  // Última posición conocida: permite mostrar el mapa mientras llega el GPS
+  const [ultimaPos] = useState(() => {
+    try {
+      return JSON.parse(leer(CLAVE_ULTIMA_POS));
+    } catch {
+      return null;
+    }
+  });
   const gpsEstado = ubicacion ? "ok" : gpsError ? "error" : "buscando";
+
+  // Lo que se está mirando: tu zona, un lugar buscado o donde moviste el mapa
+  const [centro, setCentro] = useState(null);
+  const [destino, setDestino] = useState(null);
+  const [lugarBuscado, setLugarBuscado] = useState(null);
+  const [pronostico, setPronostico] = useState(null);
+  const [leyenda, setLeyenda] = useState(false);
 
   // Hasta cuándo está desbloqueado el mapa (vence con tu último reporte)
   const [reporteActivoHasta, setReporteActivoHasta] = useState(null);
   const [zonas, setZonas] = useState([]);
-  const [actividad, setActividad] = useState(null); // para el estado vacío
+  const [actividad, setActividad] = useState(null);
   const [vacioCerrado, setVacioCerrado] = useState(false);
   const [recarga, setRecarga] = useState(0);
   const [ahora, setAhora] = useState(() => Date.now());
@@ -86,10 +145,11 @@ function MapPage() {
   const [enviandoDenuncia, setEnviandoDenuncia] = useState(false);
 
   const desbloqueado = reporteActivoHasta !== null && reporteActivoHasta > ahora;
+  const avisosMostrados = useRef(new Set());
 
   // ¿Ya dio permiso antes? Entonces no hace falta explicarle nada
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    if (permisoGps !== "verificando") return;
     let activo = true;
     const decidir = (estado) => activo && setPermisoGps(estado);
     if (!navigator.permissions?.query) {
@@ -103,7 +163,7 @@ function MapPage() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [permisoGps]);
 
   // Reloj para vencer reportes y mostrar "hace X min"
   useEffect(() => {
@@ -127,12 +187,16 @@ function MapPage() {
     if (!navigator.geolocation || permisoGps !== "listo") return;
     const id = navigator.geolocation.watchPosition(
       (pos) => {
-        setUbicacion({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          precision: pos.coords.accuracy,
-        });
+        const u = { lat: pos.coords.latitude, lng: pos.coords.longitude, precision: pos.coords.accuracy };
+        setUbicacion(u);
         setGpsError(null);
+        // recordar que ya aceptó, y la zona aproximada (~100 m) para la próxima visita
+        if (!leer(CLAVE_GPS_OK)) {
+          guardar(CLAVE_GPS_OK, "1");
+          // En iPhone, Safari vuelve a preguntar en cada visita salvo que se permita en el sitio
+          if (esIOS() && !leer(CLAVE_TIP_IOS)) setTipIOS(true);
+        }
+        guardar(CLAVE_ULTIMA_POS, JSON.stringify({ lat: +u.lat.toFixed(3), lng: +u.lng.toFixed(3) }));
       },
       (err) => setGpsError(err.code),
       OPCIONES_GPS
@@ -144,6 +208,18 @@ function MapPage() {
     setGpsError(navigator.geolocation ? null : "sin-soporte");
     setIntentoGps((n) => n + 1);
   }, []);
+
+  // El primer dato de GPS fija el centro y mueve el mapa a tu zona
+  const primeraVez = useRef(true);
+  useEffect(() => {
+    if (ubicacion && primeraVez.current) {
+      primeraVez.current = false;
+      Promise.resolve().then(() => {
+        setCentro({ lat: ubicacion.lat, lng: ubicacion.lng });
+        setDestino({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: 15 });
+      });
+    }
+  }, [ubicacion]);
 
   // ¿Tengo un reporte vigente? (desbloquea el mapa tras recargar la página)
   useEffect(() => {
@@ -162,16 +238,29 @@ function MapPage() {
     };
   }, []);
 
-  // Zonas compartidas de toda la comunidad + actividad cercana (estado vacío)
-  const lat = redondear(ubicacion?.lat);
-  const lng = redondear(ubicacion?.lng);
+  const cLat = centro ? redondear(centro.lat) : undefined;
+  const cLng = centro ? redondear(centro.lng) : undefined;
+
+  // Pronóstico de respaldo para lo que se está mirando (también con el mapa bloqueado)
   useEffect(() => {
-    if (lat === undefined || !desbloqueado) return;
+    if (cLat === undefined) return;
+    let activo = true;
+    obtenerPronostico(cLat, cLng)
+      .then((p) => activo && setPronostico(p))
+      .catch(() => activo && setPronostico(null));
+    return () => {
+      activo = false;
+    };
+  }, [cLat, cLng]);
+
+  // Zonas de la comunidad alrededor del centro + actividad (estado vacío)
+  useEffect(() => {
+    if (cLat === undefined || !desbloqueado) return;
     let activo = true;
     const cargar = async () => {
       const [z, a] = await Promise.all([
-        supabase.rpc("zonas_cercanas", { p_lat: lat, p_lng: lng, p_radio_m: RADIO_BUSQUEDA_M }),
-        supabase.rpc("actividad_cercana", { p_lat: lat, p_lng: lng }),
+        supabase.rpc("zonas_cercanas", { p_lat: cLat, p_lng: cLng, p_radio_m: RADIO_BUSQUEDA_M }),
+        supabase.rpc("actividad_cercana", { p_lat: cLat, p_lng: cLng }),
       ]);
       if (!activo) return;
       if (!z.error) {
@@ -191,7 +280,72 @@ function MapPage() {
       activo = false;
       clearInterval(id);
     };
-  }, [lat, lng, desbloqueado, recarga, message]);
+  }, [cLat, cLng, desbloqueado, recarga, message]);
+
+  // Avisos de tus zonas de interés mientras tienes RedClima abierto
+  useEffect(() => {
+    let activo = true;
+    const revisar = async () => {
+      const { data } = await supabase
+        .from("notificaciones")
+        .select("id, titulo, creado_en")
+        .eq("tipo", "zona_interes")
+        .eq("leida", false)
+        .order("creado_en", { ascending: false })
+        .limit(3);
+      if (!activo || !data) return;
+      const nuevos = data.filter(
+        (n) => !avisosMostrados.current.has(n.id) && Date.now() - new Date(n.creado_en).getTime() < 30 * 60 * 1000
+      );
+      nuevos.forEach((n) => {
+        avisosMostrados.current.add(n.id);
+        message.info({ content: `📍 ${n.titulo}`, duration: 6 });
+      });
+      if (nuevos.length) refrescarNotificaciones();
+    };
+    revisar();
+    const id = setInterval(revisar, 60 * 1000);
+    return () => {
+      activo = false;
+      clearInterval(id);
+    };
+  }, [message, refrescarNotificaciones]);
+
+  const alMover = useCallback((c) => {
+    setCentro((prev) => (prev && redondear(prev.lat) === redondear(c.lat) && redondear(prev.lng) === redondear(c.lng) ? prev : c));
+  }, []);
+
+  const irA = useCallback((lugar) => {
+    setDestino({ lat: lugar.lat, lng: lugar.lng, zoom: lugar.zoom ?? 15 });
+    setCentro({ lat: lugar.lat, lng: lugar.lng });
+  }, []);
+
+  const elegirLugar = (lugar) => {
+    setLugarBuscado(lugar);
+    irA({ ...lugar, zoom: 15 });
+  };
+
+  const volverAMiUbicacion = () => {
+    if (!ubicacion) {
+      reintentarGps();
+      return;
+    }
+    setLugarBuscado(null);
+    irA({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: 15 });
+  };
+
+  const guardarLugarComoZona = async (lugar) => {
+    const { error } = await supabase.rpc("guardar_zona_interes", {
+      p_nombre: lugar.nombre.slice(0, 30),
+      p_lat: lugar.lat,
+      p_lng: lugar.lng,
+    });
+    if (error) {
+      message.error(mensajeError(error, "No pudimos guardar la zona"));
+      return;
+    }
+    message.success(`Guardada. Te avisaremos cuando alguien reporte el clima en ${lugar.nombre}.`);
+  };
 
   const avisarSubidaDeNivel = (antes, despues) => {
     const a = infoNivel(antes).actual;
@@ -225,6 +379,7 @@ function MapPage() {
         message.error(mensajeError(error, "No pudimos guardar tu reporte. Inténtalo de nuevo."));
         return;
       }
+      if ((perfil?.total_reportes ?? 0) === 0) registrarPaso("primer_reporte");
       setIsModalOpen(false);
       setConfirmData(null);
       setAhora(Date.now());
@@ -251,7 +406,7 @@ function MapPage() {
       message.error("Necesitamos tu ubicación para reportar.");
       return;
     }
-    const zonaActual = zonas.find((z) => distanciaMetros(z, ubicacion) <= z.radio_m);
+    const zonaActual = zonas.find((z) => z.reciente !== false && distanciaMetros(z, ubicacion) <= z.radio_m);
     if (zonaActual) {
       setConfirmData({ clima, zona: zonaActual });
       setIsModalOpen(false);
@@ -288,6 +443,7 @@ function MapPage() {
     }
     setZonaDenuncia(null);
     setTextoDenuncia("");
+    setRecarga((r) => r + 1);
     message.success("Gracias. Revisaremos esta zona. Puedes seguir el caso en Menú › Mis mensajes.");
   };
 
@@ -305,7 +461,7 @@ function MapPage() {
     );
   }
 
-  // Explicación antes del aviso del navegador
+  // Explicación antes del aviso del navegador (solo la primera vez)
   if (permisoGps === "explicar") {
     return (
       <div className="gps-explicacion">
@@ -315,8 +471,8 @@ function MapPage() {
           <p>Para mostrarte el clima de tu zona y que tu reporte aparezca donde estás.</p>
           <ul className="gps-explicacion-lista">
             <li>Solo la usamos mientras tienes RedClima abierto.</li>
-            <li>Nadie ve tu ubicación exacta: el mapa la redondea a unos 100 m.</li>
-            <li>Puedes quitar el permiso cuando quieras desde tu navegador.</li>
+            <li>Nadie ve tu ubicación exacta: el mapa la agrupa en zonas de unos 500 m.</li>
+            <li>Te lo preguntamos una sola vez; puedes quitar el permiso cuando quieras.</li>
           </ul>
           <Button type="primary" size="large" className="btn-unlock" onClick={() => setPermisoGps("listo")}>
             Activar ubicación
@@ -326,7 +482,8 @@ function MapPage() {
     );
   }
 
-  if (gpsEstado === "buscando") {
+  // Sin posición previa conocida, esperamos el GPS; con ella, mostramos el mapa ya
+  if (gpsEstado === "buscando" && !ultimaPos) {
     return (
       <div className="loading-screen" role="status">
         <Spin size="large" />
@@ -335,49 +492,72 @@ function MapPage() {
     );
   }
 
-  const centro = ubicacion || UBICACION_DEFECTO;
+  const inicio = ubicacion || ultimaPos || UBICACION_DEFECTO;
   const textoErrorGps = TEXTO_ERROR_GPS[gpsError] ?? TEXTO_ERROR_GPS[2];
+  const mirandoOtroLugar = centro && ubicacion && distanciaMetros(centro, ubicacion) > 3000;
+  const dondeMira = lugarBuscado && mirandoOtroLugar ? lugarBuscado.nombre : mirandoOtroLugar ? "esta zona" : "tu zona";
 
   // Estado vacío: nadie más reportó cerca, o hay reportes pero aún no forman zonas visibles
   let vacio = null;
-  if (desbloqueado && actividad && !vacioCerrado && gpsEstado === "ok") {
-    if (actividad.otros_reportes === 0) {
+  if (desbloqueado && actividad && !vacioCerrado && centro) {
+    if (actividad.otros_reportes === 0 && zonas.length <= 1) {
       vacio = {
-        titulo: "¡Estrena tu zona! 🌤️",
-        texto: `Nadie más ha reportado cerca de ti en los últimos ${DURACION_REPORTE_MIN} minutos. Invita a tus vecinos para que tu zona tenga más datos.`,
-        invitar: true,
+        titulo: mirandoOtroLugar ? "Aún nadie ha reportado por aquí" : "¡Estrena tu zona! 🌤️",
+        texto: mirandoOtroLugar
+          ? `No hay reportes recientes en ${dondeMira}. Te mostramos el pronóstico mientras tanto.`
+          : `Nadie más ha reportado cerca de ti en los últimos ${DURACION_REPORTE_MIN} minutos. Invita a tus vecinos para que tu zona tenga más datos.`,
+        invitar: !mirandoOtroLugar,
       };
-    } else if (zonas.length <= 1) {
+    } else if (zonas.length === 0) {
       vacio = {
-        titulo: "Tu zona está despertando",
+        titulo: "La zona está despertando",
         texto: `El reporte más cercano es de hace ${actividad.minutos_ultimo ?? 0} min, a ${actividad.km_mas_cercano} km. Las zonas aparecen cuando al menos 2 personas reportan en el mismo lugar.`,
         invitar: true,
       };
     }
   }
 
+  const climaPronostico = pronostico ? CLIMA_POR_ID[pronostico.tipo] : null;
+
   return (
-    <Layout className="map-layout">
-      <Button
-        className="btn-hamburguesa"
-        shape="circle"
-        icon={<MenuOutlined />}
-        onClick={() => setIsMenuOpen(true)}
-        aria-label={noLeidas > 0 ? `Abrir menú (${noLeidas} mensajes nuevos)` : "Abrir menú"}
-      >
-        {noLeidas > 0 && <span className="punto-notif" aria-hidden="true" />}
-      </Button>
+    <Layout className={`map-layout ${MAPA_SUAVE ? "mapa-suave" : ""}`}>
+      {/* Barra superior: buscador + menú (por encima del candado) */}
+      <div className="barra-superior">
+        <Buscador cerca={ubicacion || ultimaPos} onElegir={elegirLugar} placeholder="Buscar barrio, lugar o ciudad…" />
+        <Button
+          className="btn-hamburguesa"
+          shape="circle"
+          icon={<MenuOutlined />}
+          onClick={() => setIsMenuOpen(true)}
+          aria-label={noLeidas > 0 ? `Abrir menú (${noLeidas} mensajes nuevos)` : "Abrir menú"}
+        >
+          {noLeidas > 0 && <span className="punto-notif" aria-hidden="true" />}
+        </Button>
+      </div>
+
+      {/* Pronóstico de respaldo, siempre etiquetado como tal */}
+      {climaPronostico && (
+        <div className="chip-pronostico" role="status" aria-label="Pronóstico">
+          <Icono nodo={climaPronostico.icono} tamano={18} color={climaPronostico.color} />
+          <span>
+            <strong>{pronostico.temperatura}°</strong> {climaPronostico.label}
+            <small> · sensación {pronostico.sensacion}°</small>
+          </span>
+          <span className="chip-etiqueta">Pronóstico</span>
+        </div>
+      )}
 
       <Content className="main-content">
         <div className={`map-wrapper ${!desbloqueado ? "is-locked" : ""}`}>
           <MapContainer
-            center={[centro.lat, centro.lng]}
+            center={[inicio.lat, inicio.lng]}
             zoom={15}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
-            <TileLayer url={TILES_URL} maxZoom={19} attribution={TILES_ATRIBUCION} />
-            <RecenterMap coords={ubicacion} intento={intentoGps} />
+            <TileLayer url={TILES_URL} maxZoom={19} attribution={TILES_ATRIBUCION} detectRetina />
+            <ControlMapa destino={destino} onMover={alMover} />
+            {ubicacion && <Marker position={[ubicacion.lat, ubicacion.lng]} icon={ICONO_YO} alt="Tu ubicación" interactive={false} />}
             {desbloqueado &&
               zonas.map((z, i) => (
                 <ZonaClima
@@ -387,10 +567,70 @@ function MapPage() {
                   onDenunciar={(zona) => setZonaDenuncia(zona)}
                 />
               ))}
+            {lugarBuscado && (
+              <Marker position={[lugarBuscado.lat, lugarBuscado.lng]} icon={ICONO_LUGAR} alt={lugarBuscado.nombre}>
+                <Popup>
+                  <div className="lugar-popup">
+                    <strong>{lugarBuscado.nombre}</strong>
+                    {lugarBuscado.detalle && <small>{lugarBuscado.detalle}</small>}
+                    <button type="button" onClick={() => guardarLugarComoZona(lugarBuscado)}>
+                      <Icono nodo={Star} tamano={14} color="#b45309" /> Guardar como zona de interés
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
           </MapContainer>
 
+          {/* Controles inferiores */}
+          {desbloqueado && (
+            <>
+              <button type="button" className="btn-mapa btn-leyenda" onClick={() => setLeyenda((v) => !v)} aria-expanded={leyenda}>
+                Leyenda
+              </button>
+              {leyenda && (
+                <div className="leyenda" role="dialog" aria-label="Leyenda del mapa">
+                  {CLIMAS.map((c) => (
+                    <span key={c.id} className="leyenda-item">
+                      <span className="leyenda-color" style={{ background: c.color }} />
+                      {c.label}
+                    </span>
+                  ))}
+                  <span className="leyenda-nota">Zonas punteadas: último dato (30–60 min)</span>
+                </div>
+              )}
+            </>
+          )}
+          <button type="button" className="btn-mapa btn-mi-ubicacion" onClick={volverAMiUbicacion} aria-label="Ir a mi ubicación">
+            <Icono nodo={LocateFixed} tamano={20} color="#1d63d6" />
+          </button>
+
+          {gpsEstado === "buscando" && (
+            <div className="chip-ubicando" role="status">
+              <Spin size="small" /> Ubicándote…
+            </div>
+          )}
+
+          {tipIOS && (
+            <div className="gps-aviso" role="status">
+              <span>
+                Para que tu iPhone no te pregunte la ubicación en cada visita: toca <strong>aA</strong> en la barra de
+                Safari › <strong>Configuración del sitio web</strong> › Ubicación › <strong>Permitir</strong>.
+              </span>
+              <Button
+                size="small"
+                onClick={() => {
+                  guardar(CLAVE_TIP_IOS, "1");
+                  setTipIOS(false);
+                }}
+              >
+                Entendido
+              </Button>
+            </div>
+          )}
+
           {/* Mapa desbloqueado pero sin GPS: avisar en vez de mostrar un mapa vacío */}
-          {desbloqueado && gpsEstado === "error" && (
+          {desbloqueado && gpsEstado === "error" && !tipIOS && (
             <div className="gps-aviso" role="alert">
               <span>{textoErrorGps}</span>
               <Button size="small" type="primary" onClick={reintentarGps}>
@@ -399,14 +639,9 @@ function MapPage() {
             </div>
           )}
 
-          {vacio && (
+          {vacio && !tipIOS && (
             <div className="estado-vacio" role="status">
-              <button
-                type="button"
-                className="estado-vacio-cerrar"
-                onClick={() => setVacioCerrado(true)}
-                aria-label="Cerrar aviso"
-              >
+              <button type="button" className="estado-vacio-cerrar" onClick={() => setVacioCerrado(true)} aria-label="Cerrar aviso">
                 <CloseOutlined />
               </button>
               <strong>{vacio.titulo}</strong>
@@ -436,11 +671,18 @@ function MapPage() {
                     <span className="lock-emoji" aria-hidden="true">🌦️</span>
                     <h3>¿Cómo está el cielo ahí afuera?</h3>
                     <p>
-                      Tu reporte tarda 3 segundos y ayuda a quien está por salir cerca de ti. Al reportar,
-                      ves el mapa de tu zona durante <strong>{DURACION_REPORTE_MIN} minutos</strong>.
+                      {lugarBuscado && mirandoOtroLugar
+                        ? `Reporta el clima donde estás y verás lo que reportan los vecinos en ${lugarBuscado.nombre} durante ${DURACION_REPORTE_MIN} minutos.`
+                        : `Tu reporte tarda 3 segundos y ayuda a quien está por salir cerca de ti. Al reportar, ves el mapa de la comunidad durante ${DURACION_REPORTE_MIN} minutos.`}
                     </p>
-                    <Button type="primary" size="large" className="btn-unlock" onClick={() => setIsModalOpen(true)}>
-                      Reportar el clima
+                    <Button
+                      type="primary"
+                      size="large"
+                      className="btn-unlock"
+                      onClick={() => setIsModalOpen(true)}
+                      disabled={gpsEstado !== "ok"}
+                    >
+                      {gpsEstado === "ok" ? "Reportar el clima" : "Ubicándote…"}
                     </Button>
                     <p className="lock-nota">Cada reporte suma {XP_POR_REPORTE} XP para subir de nivel.</p>
                   </>
@@ -454,10 +696,18 @@ function MapPage() {
       {desbloqueado && <ReportButton onClick={() => setIsModalOpen(true)} />}
 
       <Modal open={isMenuOpen} onCancel={() => setIsMenuOpen(false)} footer={null} centered width={380} closable={false} destroyOnHidden>
-        <UserProfileMenu onCancel={() => setIsMenuOpen(false)} ubicacion={ubicacion} />
+        <UserProfileMenu
+          onCancel={() => setIsMenuOpen(false)}
+          ubicacion={ubicacion}
+          onIrA={(z) => {
+            setIsMenuOpen(false);
+            setLugarBuscado({ nombre: z.nombre, lat: z.lat, lng: z.lng });
+            irA({ lat: z.lat, lng: z.lng, zoom: 15 });
+          }}
+        />
       </Modal>
 
-      <Modal open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} centered width={350} closable={false}>
+      <Modal open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} centered width={380} closable={false}>
         <Spin spinning={enviando}>
           <ClimateMenu onSelect={handleReportSelection} onCancel={() => setIsModalOpen(false)} disabled={enviando} />
         </Spin>
@@ -489,8 +739,8 @@ function MapPage() {
         {zonaDenuncia && (
           <>
             <p className="denuncia-texto">
-              La zona marca <strong>{CLIMA_POR_ID[zonaDenuncia.tipo]?.label}</strong>. Cuéntanos qué ves tú.
-              Nuestro equipo la revisará y, si es falsa, la retirará del mapa.
+              La zona marca <strong>{CLIMA_POR_ID[zonaDenuncia.tipo]?.label}</strong>. Cuéntanos qué ves tú. Si 3 vecinos
+              coinciden, la retiramos del mapa de inmediato.
             </p>
             <Input.TextArea
               rows={3}
