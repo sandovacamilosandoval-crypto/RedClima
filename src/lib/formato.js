@@ -9,7 +9,7 @@ export const formatearFecha = (iso) => formatoFecha.format(new Date(iso));
 
 export function haceCuanto(iso, ahora) {
   const minutos = Math.round((ahora - new Date(iso).getTime()) / 60000);
-  if (minutos < 1) return "hace un momento";
-  if (minutos < 60) return `hace ${minutos} min`;
-  return `hace ${Math.round(minutos / 60)} h`;
+  if (minutos < 1) return "Hace un momento";
+  if (minutos < 60) return `Hace ${minutos} min`;
+  return `Hace ${Math.round(minutos / 60)} h`;
 }

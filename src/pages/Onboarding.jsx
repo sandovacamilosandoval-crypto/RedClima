@@ -6,7 +6,7 @@ import './Onboarding.css';
 
 import logoApp from '../components/assets/icono.png';
 import gpsImg from '../components/assets/gps.png';
-import { CLIMAS } from '../constants/clima';
+import { CLIMAS, DURACION_REPORTE_MIN } from '../constants/clima';
 
 export default function Onboarding() {
   const [current, setCurrent] = useState(0);
@@ -34,7 +34,7 @@ export default function Onboarding() {
     },
     {
       title: "Reporta en un toque",
-      text: "Solo elige el icono del clima que ves por tu ventana y compártelo con el resto.",
+      text: `Elige el clima que ves por tu ventana. Tu reporte desbloquea el mapa durante ${DURACION_REPORTE_MIN} minutos y suma 10 XP para subir de nivel.`,
       media: <img src={logoApp} className="logo-img-step" alt="Logo" />
     }
   ];
@@ -42,6 +42,11 @@ export default function Onboarding() {
   return (
     <div className="ob-screen">
       <div className="ob-card">
+        {current < steps.length - 1 && (
+          <button type="button" className="ob-saltar" onClick={() => navigate('/mapa')}>
+            Saltar
+          </button>
+        )}
         {/* Visual arriba en pasos 1 y 3 */}
         {current !== 1 && <div className="ob-media">{steps[current].media}</div>}
 

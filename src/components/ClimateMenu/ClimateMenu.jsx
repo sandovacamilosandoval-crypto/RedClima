@@ -3,19 +3,22 @@ import { Button } from 'antd';
 import { CLIMAS } from '../../constants/clima';
 import './ClimateMenu.css';
 
-const ClimateMenu = ({ onSelect, onCancel }) => {
+const ClimateMenu = ({ onSelect, onCancel, disabled = false }) => {
   return (
     <div className="climate-menu-wrapper">
-      <div className="climate-grid">
+      <h2 className="climate-title" id="climate-title">¿Qué clima ves ahora?</h2>
+      <div className="climate-grid" role="group" aria-labelledby="climate-title">
         {CLIMAS.map((option) => (
-          <div
+          <button
+            type="button"
             key={option.id}
             className={`climate-option ${option.id}`}
             onClick={() => onSelect(option)}
+            disabled={disabled}
           >
-            <img src={option.img} alt={option.label} className="climate-icon" />
+            <img src={option.img} alt="" className="climate-icon" />
             <span className="climate-label">{option.label}</span>
-          </div>
+          </button>
         ))}
       </div>
 

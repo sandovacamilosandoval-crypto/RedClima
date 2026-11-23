@@ -1,6 +1,7 @@
 /* Página de inicio (Landing) */
 .landing-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +54,7 @@
 /* --- Hero y Subtítulo --- */
 .landing-subtitle {
   font-size: 1.25rem;
-  color: #718096;
+  color: #596579;
   margin-bottom: 20px;
   max-width: 550px;
   line-height: 1.4;
@@ -90,7 +91,7 @@
 
 .benefit-card p {
   font-size: 0.9rem;
-  color: #718096;
+  color: #596579;
   margin: 0;
   line-height: 1.5;
 }
@@ -116,4 +117,46 @@
   color: rgb(0, 0, 0) !important;
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(44, 139, 255, 0.4) !important;
+}
+
+.landing-subtitle strong {
+  color: #1a202c;
+}
+
+/* Contador en vivo */
+.landing-contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px auto 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #eaf2ff;
+  color: #1d4f9c;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.landing-pulso {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22a06b;
+  box-shadow: 0 0 0 0 rgba(34, 160, 107, 0.6);
+  animation: landingPulso 1.8s infinite;
+}
+
+@keyframes landingPulso {
+  70% { box-shadow: 0 0 0 8px rgba(34, 160, 107, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 160, 107, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-pulso { animation: none; }
+}
+
+.landing-nota {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #596579;
 }

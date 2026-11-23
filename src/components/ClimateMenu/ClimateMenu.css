@@ -81,3 +81,29 @@
   color: white !important;
   box-shadow: 0 8px 15px rgba(255, 77, 79, 0.4) !important;
 }
+
+.climate-title {
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* Las opciones son <button> (accesibles con teclado): quitar estilos del navegador */
+button.climate-option {
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  appearance: none;
+}
+
+.climate-option:focus-visible {
+  outline: 3px solid #1a5fd0;
+  outline-offset: 3px;
+}
+
+.climate-option:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}

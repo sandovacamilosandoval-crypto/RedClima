@@ -13,14 +13,23 @@ export const CLIMAS = [
 
 export const CLIMA_POR_ID = Object.fromEntries(CLIMAS.map((c) => [c.id, c]));
 
-// Las reglas de reportes (duración 1 h, 1 reporte cada 10 min, precisión
-// máx. 500 m, tamaño de zonas) viven en la base de datos:
-// supabase/migrations/20261117000000_esquema_inicial.sql
+// Las reglas de reportes (duración, 1 reporte cada 10 min, precisión máx.
+// 500 m, tamaño de zonas) viven en la base de datos (supabase/migrations).
+// Esta constante solo se usa para los textos de la interfaz.
+export const DURACION_REPORTE_MIN = 30;
 
 // Centro del mapa mientras no tengamos tu GPS (Bogotá)
 export const UBICACION_DEFECTO = { lat: 4.6097, lng: -74.0817 };
 export const RADIO_BUSQUEDA_M = 20000; // zonas visibles alrededor tuyo
 export const REFRESCO_ZONAS_MS = 60 * 1000;
+
+// Teselas del mapa. tile.openstreetmap.org NO admite tráfico intenso de apps en
+// producción: configura un proveedor con plan (MapTiler, Stadia...) en Vercel.
+export const TILES_URL =
+  import.meta.env.VITE_TILES_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const TILES_ATRIBUCION =
+  import.meta.env.VITE_TILES_ATTRIBUTION ||
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 // Reglas del nombre de usuario (usadas en registro y perfil)
 export const USERNAME_CHARS = /^[a-z0-9._-]*$/;
