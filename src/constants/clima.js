@@ -33,8 +33,12 @@ const CLAVE_CARTO = import.meta.env.VITE_CARTO_KEY;
 export const TILES_URL =
   import.meta.env.VITE_TILES_URL ||
   (CLAVE_CARTO
-    ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${CLAVE_CARTO}`
+    ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CLAVE_CARTO}`
     : "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+// Si Positron falla, el mapa pasa solo a Voyager (formato confirmado por CARTO)
+export const TILES_URL_RESPALDO = CLAVE_CARTO
+  ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${CLAVE_CARTO}`
+  : null;
 export const MAPA_SUAVE = !CLAVE_CARTO && !import.meta.env.VITE_TILES_URL;
 export const TILES_ATRIBUCION =
   import.meta.env.VITE_TILES_ATTRIBUTION ||
