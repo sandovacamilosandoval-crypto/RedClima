@@ -322,10 +322,10 @@ end;
 $$;
 
 -- Zonas: hexágonos, una persona = un voto, peso por reputación,
--- datos frescos (≤ 30 min) y "último dato" atenuado (30–60 min)
-drop function public.zonas_cercanas (double precision, double precision, integer);
-
-create function public.zonas_cercanas (
+-- datos frescos (≤ 30 min) y "último dato" atenuado (30–60 min).
+-- Función nueva (no se borra zonas_cercanas: así la migración no elimina nada
+-- y la versión anterior de la web sigue funcionando mientras se publica).
+create function public.zonas_hex (
   p_lat double precision,
   p_lng double precision,
   p_radio_m integer default 20000
@@ -410,8 +410,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.zonas_cercanas (double precision, double precision, integer) from public, anon;
-grant execute on function public.zonas_cercanas (double precision, double precision, integer) to authenticated;
+revoke execute on function public.zonas_hex (double precision, double precision, integer) from public, anon;
+grant execute on function public.zonas_hex (double precision, double precision, integer) to authenticated;
 
 -- ---------------------------------------------------------------------
 -- Denuncias: si 3+ vecinos denuncian el mismo clima en la misma zona en

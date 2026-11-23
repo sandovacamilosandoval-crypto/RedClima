@@ -259,7 +259,7 @@ function MapPage() {
     let activo = true;
     const cargar = async () => {
       const [z, a] = await Promise.all([
-        supabase.rpc("zonas_cercanas", { p_lat: cLat, p_lng: cLng, p_radio_m: RADIO_BUSQUEDA_M }),
+        supabase.rpc("zonas_hex", { p_lat: cLat, p_lng: cLng, p_radio_m: RADIO_BUSQUEDA_M }),
         supabase.rpc("actividad_cercana", { p_lat: cLat, p_lng: cLng }),
       ]);
       if (!activo) return;
