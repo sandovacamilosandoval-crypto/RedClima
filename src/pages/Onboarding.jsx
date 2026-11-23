@@ -44,7 +44,7 @@ export default function Onboarding() {
 
   return (
     <main className="pantalla">
-      <div className="tarjeta">
+      <div className="tarjeta centrada ob-tarjeta">
         <div className="ob-arriba">
           <div className="ob-dots" aria-label={`Paso ${current + 1} de ${steps.length}`}>
             {steps.map((_, i) => (
@@ -67,7 +67,7 @@ export default function Onboarding() {
 
         <div className="ob-nav">
           {current > 0 && (
-            <Button className="ob-btn-back" onClick={() => setCurrent(current - 1)}>
+            <Button className="btn-secundario" onClick={() => setCurrent(current - 1)}>
               Atrás
             </Button>
           )}

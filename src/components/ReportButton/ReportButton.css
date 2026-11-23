@@ -9,16 +9,16 @@
   padding: 0 28px;
   border: none;
   border-radius: 26px;
-  background: var(--primario);
+  background: var(--oscuro);
   color: #fff;
   font: inherit;
   font-size: var(--t-md);
   font-weight: 600;
-  box-shadow: 0 8px 20px rgba(47, 111, 222, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   cursor: pointer;
   transition: background 0.15s, transform 0.15s;
 }
 
-.btn-reportar-custom:hover { background: #255bb8; }
+.btn-reportar-custom:hover { background: #000; }
 .btn-reportar-custom:active { transform: translateX(-50%) scale(0.97); }
 .btn-reportar-custom:focus-visible { outline: 3px solid #1a202c; outline-offset: 3px; }

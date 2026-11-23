@@ -10,9 +10,9 @@ import { registrarPaso } from '../lib/embudo';
 import './Landing.css';
 
 const BENEFICIOS = [
-  { icono: MapPin, titulo: 'Hiperlocal', texto: 'El clima de tu barrio, no de toda la ciudad.' },
-  { icono: Clock, titulo: 'En vivo', texto: `Cada reporte dura ${DURACION_REPORTE_MIN} minutos.` },
-  { icono: Users, titulo: 'Comunidad', texto: 'Lo reportan vecinos reales.' },
+  { icono: MapPin, titulo: 'Hiperlocal', texto: 'El clima de tu barrio' },
+  { icono: Clock, titulo: 'En vivo', texto: `Reportes de ${DURACION_REPORTE_MIN} min` },
+  { icono: Users, titulo: 'Comunidad', texto: 'Vecinos reales' },
 ];
 
 export default function Landing() {
@@ -38,24 +38,24 @@ export default function Landing() {
 
   return (
     <main className="pantalla">
-      <div className="tarjeta landing">
+      <div className="tarjeta centrada landing">
         <div className="landing-marca">
-          <img src={logo} alt="" width="40" height="40" />
+          <img src={logo} alt="" width="36" height="36" />
           <span>RedClima</span>
         </div>
 
-        <div className="landing-hero">
-          <h1 className="t-titulo">El clima de tu cuadra, en vivo</h1>
-          <p className="t-cuerpo">Lo reportan tus vecinos, no un pronóstico.</p>
-        </div>
+        <h1 className="t-titulo landing-titulo">
+          El clima de tu cuadra, <span className="acento">en vivo.</span>
+        </h1>
+        <p className="t-cuerpo">Lo reportan tus vecinos, no un pronóstico.</p>
 
         {actividad && (
-          <p className="landing-contador" aria-live="polite">
+          <span className="chip" aria-live="polite">
             <span className="landing-pulso" aria-hidden="true" />
             {reportes > 0
               ? `${reportes} ${reportes === 1 ? 'reporte' : 'reportes'} en la última hora`
               : 'Sé de los primeros en reportar hoy'}
-          </p>
+          </span>
         )}
 
         <ul className="landing-beneficios">
@@ -64,10 +64,8 @@ export default function Landing() {
               <span className="landing-beneficio-icono">
                 <Icono nodo={b.icono} tamano={20} color="#2f6fde" />
               </span>
-              <span>
-                <strong>{b.titulo}</strong>
-                <small>{b.texto}</small>
-              </span>
+              <strong>{b.titulo}</strong>
+              <small>{b.texto}</small>
             </li>
           ))}
         </ul>

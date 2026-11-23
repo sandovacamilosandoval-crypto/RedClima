@@ -4,6 +4,7 @@
   line-height: 20px;
   color: var(--texto-2);
   align-items: flex-start;
+  text-align: left;
 }
 
 .login-checkbox .link-text {
@@ -15,9 +16,9 @@
 
 .btn-google.ant-btn {
   width: 100%;
-  height: 48px;
-  border-radius: var(--radio-sm);
-  border: 1px solid var(--borde);
+  height: 52px;
+  border-radius: 9999px;
+  border: 1px solid #d1d1d1;
   background: var(--superficie);
   color: var(--texto);
   font-size: var(--t-md);

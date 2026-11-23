@@ -1,14 +1,16 @@
 /* ==========================================================
-   Sistema de diseño de RedClima
-   · Una sola tipografía (Inter)
-   · Escala de tamaños: 12 · 14 · 16 · 20 · 28
-   · Espacios en múltiplos de 8 px (4 para ajustes finos)
-   · Todo el texto alineado a la izquierda
+   Sistema de diseño de RedClima (inspirado en MonAi)
+   · Nunito, títulos muy gruesos y texto gris carbón
+   · Fondo blanco/gris muy claro, tarjetas blancas de 20 px
+   · Botones tipo píldora: principal oscuro, secundario con borde
+   · Azul de RedClima como color de acento
+   · Cada bloque con una sola alineación (bienvenida: centrado;
+     menús y listas: a la izquierda)
    ========================================================== */
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/nunito";
 
 :root {
-  --fuente: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fuente: "Nunito Variable", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --t-xs: 12px;
   --t-sm: 14px;
@@ -23,20 +25,26 @@
   --e-5: 24px;
   --e-6: 32px;
 
-  --texto: #1a202c;
-  --texto-2: #4a5568;
-  --texto-3: #64748b;
-  --borde: #e6eaf0;
-  --fondo: #f6f8fb;
+  --texto: #363636;
+  --texto-2: #5f5f5f;
+  --texto-3: #757575;
+  --borde: rgba(0, 0, 0, 0.06);
+  --fondo: #f3f3f3;
   --superficie: #ffffff;
-  --primario: #2f6fde;
+  --oscuro: #363636;
+  --acento: #4f8cff;
+  --acento-suave: #eaf2ff;
+  --acento-texto: #2f6fde;
+  --primario: #363636;
   --primario-suave: #eaf2ff;
-  --peligro: #c62828;
-  --exito: #0e7a50;
+  --peligro: #d14343;
+  --exito: #1e8e5a;
 
-  --radio: 16px;
-  --radio-sm: 12px;
-  --sombra: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --radio: 20px;
+  --radio-sm: 16px;
+  --pildora: 9999px;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.02), 0 4px 8px rgba(0, 0, 0, 0.02);
+  --sombra-flotante: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 html, body, #root {
@@ -47,26 +55,44 @@ html, body, #root {
   background-color: var(--fondo);
   font-family: var(--fuente);
   color: var(--texto);
-  text-align: left;
   -webkit-font-smoothing: antialiased;
 }
 
 button, input, textarea, select { font-family: inherit; }
-
-/* El scroll solo se bloquea en la pantalla del mapa (ver MapPage.css).
-   Las demás páginas deben poder hacer scroll en móviles. */
 
 * {
   box-sizing: border-box;
 }
 
 /* ---- Tipografía ---- */
-.t-titulo { margin: 0; font-size: var(--t-xl); line-height: 34px; font-weight: 750; letter-spacing: -0.02em; color: var(--texto); }
-.t-h2 { margin: 0; font-size: var(--t-lg); line-height: 28px; font-weight: 700; color: var(--texto); }
-.t-h3 { margin: 0; font-size: var(--t-md); line-height: 24px; font-weight: 650; color: var(--texto); }
+.t-titulo { margin: 0; font-size: var(--t-xl); line-height: 34px; font-weight: 900; letter-spacing: -0.03em; color: var(--texto); }
+.t-h2 { margin: 0; font-size: var(--t-lg); line-height: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--texto); }
+.t-h3 { margin: 0; font-size: var(--t-md); line-height: 22px; font-weight: 800; color: var(--texto); }
 .t-cuerpo { margin: 0; font-size: var(--t-md); line-height: 24px; color: var(--texto-2); }
 .t-sm { margin: 0; font-size: var(--t-sm); line-height: 20px; color: var(--texto-2); }
 .t-xs { margin: 0; font-size: var(--t-xs); line-height: 16px; color: var(--texto-3); }
+
+/* Palabra destacada con el azul de RedClima */
+.acento {
+  background: linear-gradient(90deg, #74acff, #2f6fde);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Etiqueta tipo píldora */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding: 6px 14px;
+  border-radius: var(--pildora);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--texto-2);
+}
 
 /* ---- Pantalla con tarjeta (Landing, Login, Registro, Tutorial, Legales) ---- */
 .pantalla {
@@ -83,7 +109,8 @@ button, input, textarea, select { font-family: inherit; }
   width: 100%;
   max-width: 420px;
   background: var(--superficie);
-  border-radius: 24px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
   box-shadow: var(--sombra);
   padding: var(--e-6) var(--e-5);
   display: flex;
@@ -91,13 +118,31 @@ button, input, textarea, select { font-family: inherit; }
   gap: var(--e-4);
 }
 
-/* Botón principal de ancho completo (mismo en toda la app) */
+/* Tarjetas de bienvenida: todo centrado (sin mezclar) */
+.tarjeta.centrada { align-items: center; text-align: center; }
+.tarjeta.centrada > .campo,
+.tarjeta.centrada > .ant-btn,
+.tarjeta.centrada > .btn-principal { width: 100%; }
+
+/* ---- Botones píldora ---- */
 .btn-principal.ant-btn {
   width: 100%;
-  height: 48px;
-  border-radius: var(--radio-sm);
+  height: 52px;
+  border-radius: var(--pildora);
   font-size: var(--t-md);
-  font-weight: 600;
+  font-weight: 700;
+}
+.btn-principal.ant-btn-primary:not(:disabled) { background: var(--oscuro); }
+.btn-principal.ant-btn-primary:not(:disabled):hover { background: #000; }
+
+.btn-secundario.ant-btn {
+  height: 52px;
+  border-radius: var(--pildora);
+  border: 1px solid #d1d1d1;
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: var(--t-md);
+  font-weight: 700;
 }
 
 /* Texto solo para lectores de pantalla */

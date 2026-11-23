@@ -42,7 +42,7 @@ export default function UserSetup() {
 
   return (
     <main className="pantalla">
-      <div className="tarjeta">
+      <div className="tarjeta centrada">
         <img src={logo} alt="" width="48" height="48" />
         <div>
           <h1 className="t-titulo">Elige tu nombre</h1>

@@ -81,12 +81,14 @@ function App() {
       locale={esES}
       theme={{
         token: {
-          colorPrimary: "#2f6fde",
-          borderRadius: 12,
-          fontFamily: '"Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+          colorPrimary: "#363636",
+          colorLink: "#2f6fde",
+          colorInfo: "#2f6fde",
+          borderRadius: 14,
+          fontFamily: '"Nunito Variable", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           fontSize: 14,
-          colorText: "#1a202c",
-          colorTextSecondary: "#4a5568",
+          colorText: "#363636",
+          colorTextSecondary: "#5f5f5f",
         },
       }}
     >

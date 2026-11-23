@@ -1,10 +1,14 @@
-.ob-arriba { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.ob-tarjeta { position: relative; }
+.ob-arriba { display: flex; align-items: center; justify-content: center; min-height: 32px; width: 100%; }
 
 .ob-dots { display: flex; gap: 6px; }
 .ob-dot { width: 8px; height: 8px; border-radius: 4px; background: #d7dee8; transition: width 0.2s; }
-.ob-dot.active { width: 24px; background: var(--primario); }
+.ob-dot.active { width: 24px; background: var(--oscuro); }
 
 .ob-saltar {
+  position: absolute;
+  top: 20px;
+  right: 16px;
   border: none;
   background: none;
   font: inherit;
@@ -18,7 +22,7 @@
 .ob-saltar:hover { background: #f1f5f9; }
 .ob-saltar:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
 
-.ob-media { min-height: 96px; display: flex; align-items: center; }
+.ob-media { min-height: 96px; display: flex; align-items: center; justify-content: center; width: 100%; }
 
 .ob-grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
 .ob-grid-item {
@@ -31,6 +35,6 @@
 }
 .ob-grid-item span { font-size: var(--t-xs); font-weight: 600; color: var(--texto); }
 
-.ob-nav { display: flex; gap: var(--e-2); }
+.ob-nav { display: flex; gap: var(--e-2); width: 100%; }
 .ob-nav .btn-principal.ant-btn { flex: 1; }
-.ob-btn-back.ant-btn { height: 48px; border-radius: var(--radio-sm); padding: 0 var(--e-4); font-weight: 600; }
+.ob-nav .btn-secundario.ant-btn { padding: 0 var(--e-5); }

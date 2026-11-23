@@ -521,7 +521,7 @@ function MapPage() {
   if (permisoGps === "explicar") {
     return (
       <main className="pantalla">
-        <div className="tarjeta">
+        <div className="tarjeta centrada">
           <IlustracionUbicacion />
           <div>
             <h1 className="t-titulo">Activa tu ubicación</h1>
