@@ -12,10 +12,10 @@ export default function Privacidad() {
   const navigate = useNavigate();
 
   return (
-    <div className="login-container">
-      <div className="login-card" style={{ maxWidth: '640px', textAlign: 'left' }}>
-        <h1 className="login-title">Política de Tratamiento de Datos Personales</h1>
-        <div style={{ color: '#4a5568', maxHeight: '60vh', overflowY: 'auto', marginBottom: '20px', paddingRight: '10px', fontSize: '0.92rem', lineHeight: 1.55 }}>
+    <main className="pantalla">
+      <div className="tarjeta legal">
+        <h1 className="t-titulo">Política de Tratamiento de Datos Personales</h1>
+        <div className="legal-texto">
           <p>
             En cumplimiento de la <strong>Ley 1581 de 2012</strong> y el <strong>Decreto 1377 de 2013</strong> de la
             República de Colombia, informamos cómo RedClima trata tus datos personales.
@@ -69,8 +69,8 @@ export default function Privacidad() {
           <p><strong>8. Autorización.</strong> Al marcar la casilla de aceptación e iniciar sesión, otorgas autorización
             previa, expresa e informada para el tratamiento descrito.</p>
         </div>
-        <Button type="primary" className="btn-ver-clima" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
+        <Button type="primary" className="btn-principal" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
       </div>
-    </div>
+    </main>
   );
 }

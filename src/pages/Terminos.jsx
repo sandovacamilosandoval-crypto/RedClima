@@ -8,10 +8,10 @@ export default function Terminos() {
   const navigate = useNavigate();
 
   return (
-    <div className="login-container">
-      <div className="login-card" style={{ maxWidth: '640px', textAlign: 'left' }}>
-        <h1 className="login-title">Términos de Uso</h1>
-        <div style={{ color: '#4a5568', maxHeight: '60vh', overflowY: 'auto', marginBottom: '20px', paddingRight: '10px', fontSize: '0.92rem', lineHeight: 1.55 }}>
+    <main className="pantalla">
+      <div className="tarjeta legal">
+        <h1 className="t-titulo">Términos de Uso</h1>
+        <div className="legal-texto">
           <p><strong>1. Aceptación.</strong> Al usar RedClima aceptas estos términos y la Política de Tratamiento de Datos.
             Debes tener al menos 14 años.</p>
           <p><strong>2. Reportes honestos.</strong> Te comprometes a reportar solo el clima que observas en el lugar donde
@@ -28,8 +28,8 @@ export default function Terminos() {
             importantes.</p>
           <p><strong>7. Ley aplicable.</strong> Estos términos se rigen por las leyes de la República de Colombia.</p>
         </div>
-        <Button type="primary" className="btn-ver-clima" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
+        <Button type="primary" className="btn-principal" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/login"))}>Volver</Button>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,19 +1,103 @@
+/* ==========================================================
+   Sistema de diseño de RedClima
+   · Una sola tipografía (Inter)
+   · Escala de tamaños: 12 · 14 · 16 · 20 · 28
+   · Espacios en múltiplos de 8 px (4 para ajustes finos)
+   · Todo el texto alineado a la izquierda
+   ========================================================== */
+@import "@fontsource-variable/inter";
+
+:root {
+  --fuente: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --t-xs: 12px;
+  --t-sm: 14px;
+  --t-md: 16px;
+  --t-lg: 20px;
+  --t-xl: 28px;
+
+  --e-1: 4px;
+  --e-2: 8px;
+  --e-3: 12px;
+  --e-4: 16px;
+  --e-5: 24px;
+  --e-6: 32px;
+
+  --texto: #1a202c;
+  --texto-2: #4a5568;
+  --texto-3: #64748b;
+  --borde: #e6eaf0;
+  --fondo: #f6f8fb;
+  --superficie: #ffffff;
+  --primario: #2f6fde;
+  --primario-suave: #eaf2ff;
+  --peligro: #c62828;
+  --exito: #0e7a50;
+
+  --radio: 16px;
+  --radio-sm: 12px;
+  --sombra: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: #f5f7fa;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  background-color: var(--fondo);
+  font-family: var(--fuente);
+  color: var(--texto);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
 }
+
+button, input, textarea, select { font-family: inherit; }
 
 /* El scroll solo se bloquea en la pantalla del mapa (ver MapPage.css).
    Las demás páginas deben poder hacer scroll en móviles. */
 
 * {
-  box-sizing: border-box; /* Asegura que el padding no estire los elementos */
+  box-sizing: border-box;
+}
+
+/* ---- Tipografía ---- */
+.t-titulo { margin: 0; font-size: var(--t-xl); line-height: 34px; font-weight: 750; letter-spacing: -0.02em; color: var(--texto); }
+.t-h2 { margin: 0; font-size: var(--t-lg); line-height: 28px; font-weight: 700; color: var(--texto); }
+.t-h3 { margin: 0; font-size: var(--t-md); line-height: 24px; font-weight: 650; color: var(--texto); }
+.t-cuerpo { margin: 0; font-size: var(--t-md); line-height: 24px; color: var(--texto-2); }
+.t-sm { margin: 0; font-size: var(--t-sm); line-height: 20px; color: var(--texto-2); }
+.t-xs { margin: 0; font-size: var(--t-xs); line-height: 16px; color: var(--texto-3); }
+
+/* ---- Pantalla con tarjeta (Landing, Login, Registro, Tutorial, Legales) ---- */
+.pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e-5) var(--e-4);
+  background: var(--fondo);
+}
+
+.tarjeta {
+  width: 100%;
+  max-width: 420px;
+  background: var(--superficie);
+  border-radius: 24px;
+  box-shadow: var(--sombra);
+  padding: var(--e-6) var(--e-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+
+/* Botón principal de ancho completo (mismo en toda la app) */
+.btn-principal.ant-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radio-sm);
+  font-size: var(--t-md);
+  font-weight: 600;
 }
 
 /* Texto solo para lectores de pantalla */

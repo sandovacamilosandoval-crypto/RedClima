@@ -1,63 +1,82 @@
-import React, { useState } from "react";
-import { App, Button, Input, Divider, Progress, Spin } from "antd";
+import React, { useCallback, useState } from "react";
+import { App, Button, Progress, Spin } from "antd";
 import {
-  UserOutlined,
-  HistoryOutlined,
-  CustomerServiceOutlined,
-  LogoutOutlined,
-  ArrowLeftOutlined,
-  RightOutlined,
-  DeleteOutlined,
-  MessageOutlined,
-  DashboardOutlined,
-  TrophyOutlined,
-  EnvironmentOutlined,
-} from "@ant-design/icons";
+  User,
+  History,
+  MapPin,
+  Trophy,
+  LifeBuoy,
+  LayoutDashboard,
+  LogOut,
+  Trash2,
+  ChevronRight,
+  X,
+} from "lucide";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/icono.png";
-import {
-  CLIMA_POR_ID,
-  USERNAME_CHARS,
-  DIAS_BLOQUEO_USERNAME,
-  normalizarUsername,
-  esUsernameValido,
-} from "../constants/clima";
+import { CLIMA_POR_ID, DIAS_BLOQUEO_USERNAME } from "../constants/clima";
+import { NIVELES, XP_POR_REPORTE, infoNivel } from "../constants/niveles";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { formatearFecha } from "../lib/formato";
 import { mensajeError } from "../lib/errores";
-import { NIVELES, XP_POR_REPORTE, infoNivel } from "../constants/niveles";
+import Icono from "./Icono";
+import Hoja from "./Hoja/Hoja";
+import CampoUsuario from "./CampoUsuario";
 import SoporteForm from "./Soporte/SoporteForm";
 import MisMensajes from "./Soporte/MisMensajes";
 import MisZonas from "./MisZonas/MisZonas";
 import "./UserProfileMenu.css";
 
 const formatXP = (xp) =>
-  xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(xp);
+  xp >= 1000 ? (xp / 1000).toFixed(1).replace(/\.0$/, "").replace(".", ",") + "k" : String(xp);
+
+// Fila de la lista del menú
+function Fila({ icono, texto, detalle, insignia, peligro, onClick }) {
+  return (
+    <button type="button" className={`lista-fila ${peligro ? "peligro" : ""}`} onClick={onClick}>
+      <Icono nodo={icono} tamano={20} color={peligro ? "#c62828" : "#4a5568"} />
+      <span className="lista-texto">
+        {texto}
+        {detalle && <small>{detalle}</small>}
+      </span>
+      {insignia > 0 && (
+        <span className="insignia" aria-label={`${insignia} sin leer`}>
+          {insignia}
+        </span>
+      )}
+      {!peligro && (
+        <span className="lista-flecha">
+          <Icono nodo={ChevronRight} tamano={18} />
+        </span>
+      )}
+    </button>
+  );
+}
 
 const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
   const navigate = useNavigate();
-  const { perfil, rol, noLeidas, refrescarPerfil, cerrarSesion } = useAuth();
+  const { perfil, rol, noLeidasSoporte, noLeidasZonas, refrescarPerfil, cerrarSesion } = useAuth();
   const { message, modal } = App.useApp();
 
   const [view, setView] = useState("HUB");
   const [tempUsername, setTempUsername] = useState(perfil?.username ?? "");
+  const [estadoUsuario, setEstadoUsuario] = useState({ valido: true, disponible: true });
+  const alEstadoUsuario = useCallback((e) => setEstadoUsuario(e), []);
   const [guardando, setGuardando] = useState(false);
   // El menú se monta cada vez que se abre, así que esta hora siempre es actual
   const [ahora] = useState(() => Date.now());
-
   const [historial, setHistorial] = useState(null);
 
   if (!perfil) return null;
 
+  const esEquipo = !!rol;
   const nivel = infoNivel(perfil.xp);
 
-  const isUsernameValid = esUsernameValido(tempUsername);
-  const mostrarError = !isUsernameValid && tempUsername.length > 0;
   const diffDays = Math.floor((ahora - new Date(perfil.username_cambiado_en).getTime()) / 86400000);
   const diasRestantes = DIAS_BLOQUEO_USERNAME - diffDays;
-  const isButtonDisabled =
-    !isUsernameValid || tempUsername === perfil.username || diasRestantes > 0;
+  const puedeGuardar =
+    estadoUsuario.valido && estadoUsuario.disponible === true && tempUsername !== perfil.username && diasRestantes <= 0;
 
   // scope "local" tras borrar la cuenta: el usuario ya no existe en el servidor
   const salir = async (scope = "global") => {
@@ -71,7 +90,7 @@ const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
   };
 
   const handleSave = async () => {
-    if (guardando) return;
+    if (guardando || !puedeGuardar) return;
     setGuardando(true);
     try {
       const { error } = await supabase.rpc("cambiar_username", { p_username: tempUsername });
@@ -79,7 +98,7 @@ const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
         message.error(mensajeError(error, "No pudimos cambiar tu nombre. Inténtalo de nuevo."));
         return;
       }
-      message.success("Nombre actualizado");
+      message.success(`Ahora eres @${tempUsername}`);
       setView("HUB");
       await refrescarPerfil().catch(() => {});
     } finally {
@@ -101,17 +120,16 @@ const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
 
   const confirmarBorrarCuenta = () => {
     modal.confirm({
-      title: "¿Borrar tu cuenta?",
-      content:
-        "Se eliminarán tu perfil, tus reportes y tus mensajes de forma permanente. Esta acción no se puede deshacer.",
-      okText: "Sí, borrar todo",
+      title: "¿Eliminar tu cuenta?",
+      content: "Se borrarán tu perfil, tus reportes, tus zonas y tus mensajes. No se puede deshacer.",
+      okText: "Eliminar",
       okButtonProps: { danger: true },
       cancelText: "Cancelar",
       centered: true,
       onOk: async () => {
         const { error } = await supabase.rpc("borrar_mi_cuenta");
         if (error) {
-          message.error(mensajeError(error, "No pudimos borrar tu cuenta. Escríbenos a soporte."));
+          message.error(mensajeError(error, "No pudimos eliminar tu cuenta. Escríbenos a soporte."));
           return;
         }
         message.success("Tu cuenta y tus datos fueron eliminados");
@@ -120,267 +138,152 @@ const UserProfileMenu = ({ onCancel, ubicacion, onIrA }) => {
     });
   };
 
-  const renderHub = () => (
-    <div className="menu-hub-container">
-      <div className="menu-header-minimal">
-        <div className="avatar-mini-img">
-          <img src={logo} alt="Logo" className="logo-img" />
+  if (view === "PROFILE") {
+    return (
+      <Hoja
+        titulo="Mi perfil"
+        onAtras={() => setView("HUB")}
+        pie={
+          <Button type="primary" className="btn-principal" onClick={handleSave} loading={guardando} disabled={!puedeGuardar}>
+            Guardar cambios
+          </Button>
+        }
+      >
+        <CampoUsuario
+          id="perfil-username"
+          valor={tempUsername}
+          actual={perfil.username}
+          onCambio={setTempUsername}
+          onEstado={alEstadoUsuario}
+          onEnter={handleSave}
+        />
+        <p className="t-xs">
+          {diasRestantes > 0
+            ? `Podrás cambiarlo en ${diasRestantes} ${diasRestantes === 1 ? "día" : "días"}.`
+            : `Después de cambiarlo, tendrás que esperar ${DIAS_BLOQUEO_USERNAME} días para hacerlo de nuevo.`}
+        </p>
+
+        <p className="lista-seccion">Cuenta</p>
+        <div className="lista">
+          <Fila icono={LogOut} texto="Cerrar sesión" onClick={() => salir()} />
+          <Fila icono={Trash2} texto="Eliminar mi cuenta y mis datos" peligro onClick={confirmarBorrarCuenta} />
         </div>
-        <div className="user-info-mini">
-          <h3>@{perfil.username}</h3>
-          <span className="badge-rango" style={{ color: nivel.actual.color }}>
+      </Hoja>
+    );
+  }
+
+  if (view === "HISTORY") {
+    return (
+      <Hoja titulo="Mis reportes" subtitulo="Tus últimos 50 reportes" onAtras={() => setView("HUB")}>
+        {historial === null && <Spin />}
+        {historial?.length === 0 && <p className="vacio">Aún no tienes reportes.</p>}
+        {historial?.length > 0 && (
+          <div className="lista historial">
+            {historial.map((item) => (
+              <div className="lista-fila sin-accion" key={item.id}>
+                <span className="lista-texto">
+                  {CLIMA_POR_ID[item.tipo]?.label ?? item.tipo}
+                  <small>
+                    {formatearFecha(item.creado_en)} · {item.lat.toFixed(3)}, {item.lng.toFixed(3)}
+                  </small>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Hoja>
+    );
+  }
+
+  if (view === "NIVELES") {
+    return (
+      <Hoja
+        titulo="Niveles"
+        subtitulo={`Cada reporte suma ${XP_POR_REPORTE} XP. Cada nivel pide el doble que el anterior.`}
+        onAtras={() => setView("HUB")}
+      >
+        <ol className="niveles-lista">
+          {NIVELES.map((n, i) => {
+            const siguiente = NIVELES[i + 1];
+            const costo = siguiente ? siguiente.desde - n.desde : null;
+            const actual = n.nivel === nivel.actual.nivel;
+            return (
+              <li key={n.nivel} className={actual ? "actual" : ""} aria-current={actual ? "step" : undefined}>
+                <span className="niveles-num" style={{ background: n.color }}>{n.nivel}</span>
+                <div>
+                  <strong>{n.nombre}</strong>
+                  <span>{costo ? `${costo / XP_POR_REPORTE} reportes para subir` : "Nivel máximo"}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </Hoja>
+    );
+  }
+
+  if (view === "ZONAS") {
+    return <MisZonas ubicacion={ubicacion} onVolver={() => setView("HUB")} onIrA={onIrA} />;
+  }
+
+  if (view === "SOPORTE") {
+    return <MisMensajes onVolver={() => setView("HUB")} onNuevo={() => setView("NUEVA_CONSULTA")} />;
+  }
+
+  if (view === "NUEVA_CONSULTA") {
+    return <SoporteForm ubicacion={ubicacion} onVolver={() => setView("SOPORTE")} onEnviado={() => setView("SOPORTE")} />;
+  }
+
+  // Menú principal
+  return (
+    <div className="hoja">
+      <div className="menu-cabecera">
+        <img src={logo} alt="" className="menu-avatar" />
+        <div className="menu-quien">
+          <h2 className="t-h3">@{perfil.username}</h2>
+          <p className="t-sm">
             Nivel {nivel.actual.nivel} · {nivel.actual.nombre}
-            {perfil.verificado && " · ✔ Verificado"}
-          </span>
+            {perfil.verificado && " · Verificado"}
+          </p>
         </div>
+        <button type="button" className="hoja-icono" onClick={onCancel} aria-label="Cerrar menú">
+          <Icono nodo={X} tamano={20} />
+        </button>
       </div>
 
-      <div className="xp-section">
-        <div className="xp-labels">
-          {nivel.siguiente ? (
-            <>
-              <span>
-                {formatXP(nivel.xpEnNivel)} / {formatXP(nivel.xpNecesaria)} XP
-              </span>
-              <span>
-                {nivel.reportesFaltantes} {nivel.reportesFaltantes === 1 ? "reporte" : "reportes"} para{" "}
-                {nivel.siguiente.nombre}
-              </span>
-            </>
-          ) : (
-            <>
-              <span>{formatXP(perfil.xp)} XP</span>
-              <span>¡Nivel máximo!</span>
-            </>
-          )}
-        </div>
+      <div className="menu-xp">
         <Progress
           percent={nivel.porcentaje}
           showInfo={false}
           strokeColor={nivel.actual.color}
-          railColor="#f1f2f6"
-          size={{ height: 10 }}
+          railColor="#eef1f5"
+          size={{ height: 8 }}
           aria-label={`Progreso del nivel ${nivel.actual.nivel}`}
         />
+        <p className="t-xs">
+          {nivel.siguiente
+            ? `${formatXP(nivel.xpEnNivel)} de ${formatXP(nivel.xpNecesaria)} XP · ${nivel.reportesFaltantes} ${nivel.reportesFaltantes === 1 ? "reporte" : "reportes"} para ${nivel.siguiente.nombre}`
+            : `${formatXP(perfil.xp)} XP · ¡Nivel máximo!`}
+        </p>
       </div>
 
-      <div className="menu-list">
-        <button type="button" className="menu-item" onClick={() => setView("PROFILE")}>
-          <div className="item-left">
-            <UserOutlined /> <span>Mi Perfil</span>
-          </div>
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="menu-item" onClick={abrirHistorial}>
-          <div className="item-left">
-            <HistoryOutlined /> <span>Mis Reportes</span>
-          </div>
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="menu-item" onClick={() => setView("ZONAS")}>
-          <div className="item-left">
-            <EnvironmentOutlined /> <span>Mis zonas de interés</span>
-          </div>
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="menu-item" onClick={() => setView("NIVELES")}>
-          <div className="item-left">
-            <TrophyOutlined /> <span>Niveles</span>
-          </div>
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="menu-item" onClick={() => setView("MENSAJES")}>
-          <div className="item-left">
-            <MessageOutlined /> <span>Mis mensajes</span>
-          </div>
-          {noLeidas > 0 && (
-            <span className="badge-menu" aria-label={`${noLeidas} sin leer`}>
-              {noLeidas}
-            </span>
-          )}
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="menu-item" onClick={() => setView("SUPPORT")}>
-          <div className="item-left">
-            <CustomerServiceOutlined /> <span>Ayuda, quejas o sugerencias</span>
-          </div>
-          <RightOutlined className="arrow-icon" aria-hidden="true" />
-        </button>
-        {rol && (
-          <button type="button" className="menu-item" onClick={() => navigate("/admin")}>
-            <div className="item-left">
-              <DashboardOutlined /> <span>Panel de administración</span>
-            </div>
-            <RightOutlined className="arrow-icon" aria-hidden="true" />
-          </button>
+      <div className="lista">
+        <Fila icono={User} texto="Mi perfil" onClick={() => setView("PROFILE")} />
+        <Fila icono={History} texto="Mis reportes" onClick={abrirHistorial} />
+        <Fila icono={MapPin} texto="Mis zonas de interés" insignia={noLeidasZonas} onClick={() => setView("ZONAS")} />
+        <Fila icono={Trophy} texto="Niveles" onClick={() => setView("NIVELES")} />
+        {/* El soporte es para usuarios; el equipo responde desde el panel */}
+        {!esEquipo && (
+          <Fila
+            icono={LifeBuoy}
+            texto="Soporte"
+            detalle="Dudas, errores, quejas o ideas"
+            insignia={noLeidasSoporte}
+            onClick={() => setView("SOPORTE")}
+          />
         )}
+        {esEquipo && <Fila icono={LayoutDashboard} texto="Panel de administración" onClick={() => navigate("/admin")} />}
       </div>
-
-      <div className="menu-footer-centered">
-        <Button className="btn-cerrar-capsula" onClick={onCancel}>
-          Cerrar
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderProfile = () => (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">Mi Perfil</h2>
-      <div className="minimal-input-group">
-        <label className="input-label" htmlFor="perfil-username">Editar Nombre de Usuario</label>
-        <Input
-          id="perfil-username"
-          placeholder="@usuario"
-          value={tempUsername}
-          maxLength={20}
-          className="minimal-input"
-          onChange={(e) => {
-            const val = normalizarUsername(e.target.value);
-            if (USERNAME_CHARS.test(val)) setTempUsername(val);
-          }}
-          status={mostrarError ? "error" : ""}
-        />
-        <span
-          className="setup-hint"
-          style={{ color: mostrarError ? "#ff4d4f" : "#6b7280" }}
-        >
-          • Entre 3 y 20 caracteres: letras (a–z), números (0–9) y _ - .
-        </span>
-        <span className="setup-hint" style={{ color: "#6b7280" }}>
-          {diasRestantes > 0
-            ? `• Podrás cambiarlo en ${diasRestantes} día(s).`
-            : `• Tras cambiarlo, no podrás hacerlo de nuevo en ${DIAS_BLOQUEO_USERNAME} días.`}
-        </span>
-      </div>
-      <Divider />
-      <button type="button" className="menu-item logout-item-inline" onClick={() => salir()}>
-        <div className="item-left">
-          <LogoutOutlined /> <span>Cerrar Sesión</span>
-        </div>
-      </button>
-      <button type="button" className="menu-item logout-item-inline" onClick={confirmarBorrarCuenta}>
-        <div className="item-left" style={{ color: "#cf1322" }}>
-          <DeleteOutlined /> <span>Borrar mi cuenta y mis datos</span>
-        </div>
-      </button>
-      <div className="dual-buttons-container">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          className="btn-volver-rojo"
-          onClick={() => setView("HUB")}
-        >
-          Volver
-        </Button>
-        <Button
-          type="primary"
-          className="btn-action-azul"
-          onClick={handleSave}
-          loading={guardando}
-          disabled={isButtonDisabled}
-        >
-          Guardar
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderHistory = () => (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">Mis Reportes</h2>
-      <div className="history-table">
-        <div className="h-row h-head">
-          <span>Coords</span>
-          <span>Clima</span>
-          <span>Fecha</span>
-        </div>
-        <div className="h-scroll">
-          {historial === null && (
-            <div style={{ textAlign: "center", margin: "16px 0" }}>
-              <Spin />
-            </div>
-          )}
-          {historial?.length === 0 && (
-            <p style={{ textAlign: "center", color: "#6b7280", margin: "16px 0" }}>
-              Aún no tienes reportes.
-            </p>
-          )}
-          {historial?.map((item) => (
-            <div className="h-row" key={item.id}>
-              <span className="truncate-text">
-                {item.lat.toFixed(3)}, {item.lng.toFixed(3)}
-              </span>
-              <span>{CLIMA_POR_ID[item.tipo]?.label ?? item.tipo}</span>
-              <span>{formatearFecha(item.creado_en)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="menu-footer-centered">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          className="btn-volver-rojo"
-          onClick={() => setView("HUB")}
-        >
-          Volver
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderNiveles = () => (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">Niveles</h2>
-      <p className="niveles-intro">
-        Cada reporte suma {XP_POR_REPORTE} XP. Al subir de nivel, la barra vuelve a empezar y el
-        siguiente nivel pide un poco más.
-      </p>
-      <ol className="niveles-lista">
-        {NIVELES.map((n, i) => {
-          const siguiente = NIVELES[i + 1];
-          const costo = siguiente ? siguiente.desde - n.desde : null;
-          const actual = n.nivel === nivel.actual.nivel;
-          return (
-            <li key={n.nivel} className={actual ? "actual" : ""} aria-current={actual ? "step" : undefined}>
-              <span className="niveles-num" style={{ background: n.color }}>{n.nivel}</span>
-              <div>
-                <strong>{n.nombre}</strong>
-                <span>
-                  {costo
-                    ? `${costo} XP (${costo / XP_POR_REPORTE} reportes) para subir`
-                    : "Nivel máximo"}
-                </span>
-                <span className="niveles-premio">{n.premio}</span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-      <div className="menu-footer-centered">
-        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={() => setView("HUB")}>
-          Volver
-        </Button>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="minimal-menu-wrapper">
-      {view === "HUB" && renderHub()}
-      {view === "PROFILE" && renderProfile()}
-      {view === "HISTORY" && renderHistory()}
-      {view === "NIVELES" && renderNiveles()}
-      {view === "ZONAS" && <MisZonas ubicacion={ubicacion} onVolver={() => setView("HUB")} onIrA={onIrA} />}
-      {view === "SUPPORT" && (
-        <SoporteForm
-          ubicacion={ubicacion}
-          onVolver={() => setView("HUB")}
-          onEnviado={() => setView("MENSAJES")}
-        />
-      )}
-      {view === "MENSAJES" && (
-        <MisMensajes onVolver={() => setView("HUB")} onNuevo={() => setView("SUPPORT")} />
-      )}
     </div>
   );
 };

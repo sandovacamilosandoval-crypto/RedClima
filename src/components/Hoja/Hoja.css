@@ -1,0 +1,103 @@
+.hoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  text-align: left;
+}
+
+.hoja-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-2);
+}
+
+.hoja-titulos {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  padding-top: 6px;
+}
+
+.hoja-icono {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: 0 -4px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--texto);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.hoja-icono:hover { background: #f1f5f9; }
+.hoja-icono:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
+
+.hoja-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+.hoja-pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  padding-top: var(--e-2);
+}
+
+/* Campos y textos de ayuda dentro de una hoja */
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo-etiqueta { font-size: var(--t-sm); font-weight: 600; color: var(--texto); }
+.campo-ayuda { font-size: var(--t-xs); line-height: 16px; color: var(--texto-3); margin: 0; }
+.campo-ayuda.error { color: var(--peligro); }
+.campo-ayuda.ok { color: var(--exito); }
+
+/* Lista estilo "ajustes" */
+.lista { display: flex; flex-direction: column; border: 1px solid var(--borde); border-radius: var(--radio-sm); overflow: hidden; }
+.lista-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--e-3) var(--e-4);
+  border: none;
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+.lista-fila:first-child { border-top: none; }
+.lista-fila:hover { background: #f8fafc; }
+.lista-fila:focus-visible { outline: 3px solid var(--primario); outline-offset: -3px; }
+.lista-fila .lista-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lista-fila .lista-texto small { font-size: var(--t-xs); font-weight: 400; color: var(--texto-3); }
+.lista-fila.peligro { color: var(--peligro); }
+.lista-fila .lista-flecha { color: #cbd5e1; flex: none; }
+.lista-seccion { margin: var(--e-2) 0 0; font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-3); }
+
+.insignia {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e5484d;
+  color: #fff;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.vacio { margin: 0; font-size: var(--t-sm); color: var(--texto-3); }
+
+.campo-arroba { color: var(--texto-3); font-weight: 600; }

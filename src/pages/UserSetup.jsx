@@ -1,35 +1,27 @@
-import React, { useState } from "react";
-import { App, Button, Input } from "antd";
-import { UserOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import React, { useCallback, useState } from "react";
+import { App, Button } from "antd";
 import { useNavigate } from "react-router-dom";
-import {
-  USERNAME_CHARS,
-  DIAS_BLOQUEO_USERNAME,
-  normalizarUsername,
-  esUsernameValido,
-} from "../constants/clima";
+import { DIAS_BLOQUEO_USERNAME } from "../constants/clima";
 import { supabase } from "../lib/supabase";
 import { mensajeError } from "../lib/errores";
 import { registrarPaso } from "../lib/embudo";
 import { useAuth } from "../context/AuthContext";
-import "./UserSetup.css";
+import CampoUsuario from "../components/CampoUsuario";
+import logo from "../components/assets/icono.png";
 
 export default function UserSetup() {
   const navigate = useNavigate();
   const { refrescarPerfil } = useAuth();
   const { message } = App.useApp();
   const [username, setUsername] = useState("");
+  const [estado, setEstado] = useState({ valido: false, disponible: null });
   const [loading, setLoading] = useState(false);
+  const alEstado = useCallback((e) => setEstado(e), []);
 
-  const isUsernameValid = esUsernameValido(username);
-  const mostrarError = !isUsernameValid && username.length > 0;
+  const listo = estado.valido && estado.disponible === true;
 
   const handleFinish = async () => {
-    if (loading) return; // Enter repetido o doble clic
-    if (!isUsernameValid) {
-      message.error("Revisa las reglas del nombre de usuario");
-      return;
-    }
+    if (loading || !listo) return;
     setLoading(true);
     try {
       const { error } = await supabase.rpc("crear_perfil", { p_username: username });
@@ -49,58 +41,19 @@ export default function UserSetup() {
   };
 
   return (
-    <div className="setup-screen">
-      <div className="setup-card">
-        <div className="setup-icon-wrapper">
-          <CheckCircleOutlined className="setup-welcome-icon" />
+    <main className="pantalla">
+      <div className="tarjeta">
+        <img src={logo} alt="" width="48" height="48" />
+        <div>
+          <h1 className="t-titulo">Elige tu nombre</h1>
+          <p className="t-cuerpo" style={{ marginTop: 8 }}>Así te reconocerán en la comunidad.</p>
         </div>
-
-        <h1 className="setup-title">¡Casi listo!</h1>
-        <p className="setup-text">
-          Para que los demás reconozcan tus reportes, elige un nombre de usuario
-          único.
-        </p>
-
-        <div className="setup-input-group">
-          <label htmlFor="setup-username" className="sr-only">Nombre de usuario</label>
-          <Input
-            id="setup-username"
-            aria-describedby="setup-reglas"
-            size="large"
-            placeholder="Ej: usuario22"
-            prefix={<UserOutlined style={{ color: "#74acff" }} />}
-            value={username}
-            maxLength={20}
-            onChange={(e) => {
-              const val = normalizarUsername(e.target.value);
-              if (USERNAME_CHARS.test(val)) setUsername(val);
-            }}
-            onPressEnter={handleFinish}
-            className="setup-input"
-            status={mostrarError ? "error" : ""}
-          />
-          <span
-            id="setup-reglas"
-            className="setup-hint"
-            style={{ color: mostrarError ? "#ff4d4f" : "#6b7280" }}
-          >
-            • Entre 3 y 20 caracteres: letras (a–z), números (0–9) y _ - .
-          </span>
-          <span className="setup-hint" style={{ color: "#6b7280" }}>
-            • No podrás cambiarlo durante {DIAS_BLOQUEO_USERNAME} días.
-          </span>
-        </div>
-
-        <Button
-          type="primary"
-          className="setup-btn-continue"
-          loading={loading}
-          disabled={!isUsernameValid}
-          onClick={handleFinish}
-        >
+        <CampoUsuario id="setup-username" valor={username} onCambio={setUsername} onEstado={alEstado} onEnter={handleFinish} autoFocus />
+        <p className="t-xs">No podrás cambiarlo durante {DIAS_BLOQUEO_USERNAME} días.</p>
+        <Button type="primary" className="btn-principal" loading={loading} disabled={!listo} onClick={handleFinish}>
           Continuar
         </Button>
       </div>
-    </div>
+    </main>
   );
 }

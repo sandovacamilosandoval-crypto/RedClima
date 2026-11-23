@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { App, Button, Input, Popconfirm, Spin } from "antd";
-import { ArrowLeftOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { DeleteOutlined } from "@ant-design/icons";
 import { LocateFixed } from "lucide";
 import { supabase } from "../../lib/supabase";
 import { mensajeError } from "../../lib/errores";
@@ -9,6 +9,7 @@ import { CLIMA_POR_ID } from "../../constants/clima";
 import { useAuth } from "../../context/AuthContext";
 import Buscador from "../Buscador/Buscador";
 import Icono from "../Icono";
+import Hoja from "../Hoja/Hoja";
 import "./MisZonas.css";
 
 // Zonas de interés: el clima de tu trabajo, tu casa… y aviso cuando alguien reporta ahí
@@ -81,104 +82,93 @@ export default function MisZonas({ ubicacion, onVolver, onIrA }) {
 
   if (agregando) {
     return (
-      <div className="menu-subview-container">
-        <h2 className="subview-title centered">Nueva zona de interés</h2>
-        <label className="input-label" htmlFor="zona-nombre">Nombre</label>
-        <Input
-          id="zona-nombre"
-          maxLength={30}
-          placeholder="Ej.: Trabajo, Universidad, Casa de mamá"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          style={{ borderRadius: 12, marginBottom: 12 }}
-        />
-        <span className="input-label">Lugar</span>
-        <Buscador
-          compacto
-          cerca={ubicacion}
-          onElegir={(l) => {
-            setLugar(l);
-            if (!nombre.trim()) setNombre(l.nombre.slice(0, 30));
-          }}
-        />
-        {ubicacion && (
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, marginTop: 6 }}
-            onClick={() => setLugar({ nombre: "Mi ubicación actual", lat: ubicacion.lat, lng: ubicacion.lng })}
-          >
-            <Icono nodo={LocateFixed} tamano={14} color="#1d63d6" /> Usar mi ubicación actual
+      <Hoja
+        titulo="Nueva zona"
+        subtitulo="Te avisaremos cuando alguien reporte el clima ahí."
+        onAtras={() => setAgregando(false)}
+        pie={
+          <Button type="primary" className="btn-principal" loading={guardando} onClick={guardar}>
+            Guardar zona
           </Button>
-        )}
-        {lugar && <p className="zona-elegida">📍 {lugar.nombre}</p>}
-        <p className="zonas-nota">Guardamos la zona redondeada a unos 100 m. Puedes tener hasta 5.</p>
-        <div className="dual-buttons-container">
-          <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={() => setAgregando(false)}>
-            Volver
-          </Button>
-          <Button type="primary" className="btn-action-azul" loading={guardando} onClick={guardar}>
-            Guardar
-          </Button>
+        }
+      >
+        <div className="campo">
+          <label className="campo-etiqueta" htmlFor="zona-nombre">Nombre</label>
+          <Input
+            id="zona-nombre"
+            size="large"
+            maxLength={30}
+            placeholder="Ej.: Trabajo, Universidad"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
         </div>
-      </div>
+        <div className="campo">
+          <span className="campo-etiqueta">Lugar</span>
+          <Buscador
+            compacto
+            cerca={ubicacion}
+            onElegir={(l) => {
+              setLugar(l);
+              if (!nombre.trim()) setNombre(l.nombre.slice(0, 30));
+            }}
+          />
+          {ubicacion && (
+            <button
+              type="button"
+              className="enlace"
+              onClick={() => setLugar({ nombre: "Mi ubicación actual", lat: ubicacion.lat, lng: ubicacion.lng })}
+            >
+              <Icono nodo={LocateFixed} tamano={14} /> Usar mi ubicación actual
+            </button>
+          )}
+          <p className="campo-ayuda">{lugar ? `Elegido: ${lugar.nombre}` : "Busca un lugar o usa tu ubicación. Guardamos la zona redondeada a ~100 m."}</p>
+        </div>
+      </Hoja>
     );
   }
 
   return (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">Mis zonas</h2>
-      <p className="zonas-nota">
-        Te avisamos cuando alguien reporta el clima en tus zonas, así no tienes que ir hasta allá para saberlo.
-      </p>
+    <Hoja
+      titulo="Mis zonas de interés"
+      subtitulo="Mira su clima y recibe un aviso cuando alguien reporte ahí. Hasta 5."
+      onAtras={onVolver}
+      pie={
+        <Button type="primary" className="btn-principal" disabled={(zonas?.length ?? 0) >= 5} onClick={() => setAgregando(true)}>
+          Añadir zona
+        </Button>
+      }
+    >
+      {zonas === null && <Spin />}
+      {zonas?.length === 0 && <p className="vacio">Aún no tienes zonas. Añade tu trabajo o tu universidad.</p>}
 
-      {zonas === null && (
-        <div style={{ textAlign: "center", margin: "16px 0" }}>
-          <Spin />
+      {zonas?.length > 0 && (
+        <div className="lista">
+          {zonas.map((z) => {
+            const c = z.tipo ? CLIMA_POR_ID[z.tipo] : null;
+            return (
+              <div key={z.id} className="zona-item">
+                <button type="button" className="lista-fila" onClick={() => onIrA?.(z)}>
+                  <span className="zona-item-icono" style={{ "--clima": c?.color ?? "#cbd5e1" }}>
+                    {c ? <Icono nodo={c.icono} tamano={18} color={c.color} /> : null}
+                  </span>
+                  <span className="lista-texto">
+                    {z.nombre}
+                    <small>
+                      {c
+                        ? `${c.label} · ${haceCuanto(z.actualizado_en, ahora).toLowerCase()} · ${z.personas} ${z.personas === 1 ? "persona" : "personas"}`
+                        : "Sin reportes en la última hora"}
+                    </small>
+                  </span>
+                </button>
+                <Popconfirm title={`¿Borrar ${z.nombre}?`} okText="Borrar" cancelText="No" onConfirm={() => borrar(z)}>
+                  <Button type="text" icon={<DeleteOutlined />} aria-label={`Borrar ${z.nombre}`} className="zona-borrar" />
+                </Popconfirm>
+              </div>
+            );
+          })}
         </div>
       )}
-      {zonas?.length === 0 && <p className="soporte-vacio">Aún no tienes zonas. Añade tu trabajo o tu universidad.</p>}
-
-      <div className="zonas-lista">
-        {zonas?.map((z) => {
-          const c = z.tipo ? CLIMA_POR_ID[z.tipo] : null;
-          return (
-            <div key={z.id} className="zona-item">
-              <button type="button" className="zona-item-principal" onClick={() => onIrA?.(z)}>
-                <span className="zona-item-icono" style={{ "--clima": c?.color ?? "#cbd5e1" }}>
-                  {c ? <Icono nodo={c.icono} tamano={20} color={c.color} /> : "—"}
-                </span>
-                <span className="zona-item-texto">
-                  <strong>{z.nombre}</strong>
-                  <small>
-                    {c
-                      ? `${c.label} · ${haceCuanto(z.actualizado_en, ahora).toLowerCase()} · ${z.personas} ${z.personas === 1 ? "persona" : "personas"}`
-                      : "Sin reportes en la última hora"}
-                  </small>
-                </span>
-              </button>
-              <Popconfirm title={`¿Borrar ${z.nombre}?`} okText="Borrar" cancelText="No" onConfirm={() => borrar(z)}>
-                <Button type="text" icon={<DeleteOutlined />} aria-label={`Borrar ${z.nombre}`} />
-              </Popconfirm>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="dual-buttons-container">
-        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={onVolver}>
-          Volver
-        </Button>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          className="btn-action-azul"
-          disabled={(zonas?.length ?? 0) >= 5}
-          onClick={() => setAgregando(true)}
-        >
-          Añadir
-        </Button>
-      </div>
-    </div>
+    </Hoja>
   );
 }

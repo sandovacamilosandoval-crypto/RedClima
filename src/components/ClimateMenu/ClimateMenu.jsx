@@ -1,14 +1,13 @@
 import React from 'react';
-import { Button } from 'antd';
 import { CLIMAS } from '../../constants/clima';
 import Icono from '../Icono';
+import Hoja from '../Hoja/Hoja';
 import './ClimateMenu.css';
 
 const ClimateMenu = ({ onSelect, onCancel, disabled = false }) => {
   return (
-    <div className="climate-menu-wrapper">
-      <h2 className="climate-title" id="climate-title">¿Qué clima ves ahora?</h2>
-      <div className="climate-grid" role="group" aria-labelledby="climate-title">
+    <Hoja titulo="¿Qué clima ves ahora?" onCerrar={onCancel}>
+      <div className="climate-grid" role="group" aria-label="Tipo de clima">
         {CLIMAS.map((option) => (
           <button
             type="button"
@@ -19,19 +18,13 @@ const ClimateMenu = ({ onSelect, onCancel, disabled = false }) => {
             disabled={disabled}
           >
             <span className="climate-icon">
-              <Icono nodo={option.icono} tamano={26} color={option.color} />
+              <Icono nodo={option.icono} tamano={22} color={option.color} />
             </span>
             <span className="climate-label">{option.label}</span>
           </button>
         ))}
       </div>
-
-      <div className="climate-footer">
-        <Button type="primary" className="btn-cerrar-clima" onClick={onCancel}>
-          Cerrar
-        </Button>
-      </div>
-    </div>
+    </Hoja>
   );
 };
 

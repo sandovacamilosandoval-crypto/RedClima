@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { App, Button, Input } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
 import { supabase } from "../../lib/supabase";
 import { mensajeError } from "../../lib/errores";
 import { contextoApp } from "../../lib/contexto";
 import { CATEGORIAS, CATEGORIA_POR_ID } from "./categorias";
+import Hoja from "../Hoja/Hoja";
 import "./Soporte.css";
 
 // Formulario de "Ayuda, quejas o sugerencias": crea un caso para el equipo
@@ -45,46 +45,46 @@ export default function SoporteForm({ ubicacion, onVolver, onEnviado }) {
   };
 
   return (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">¿En qué te ayudamos?</h2>
-
-      <div className="soporte-categorias" role="radiogroup" aria-label="Motivo">
-        {CATEGORIAS.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            role="radio"
-            aria-checked={categoria === c.value}
-            className={`soporte-categoria ${categoria === c.value ? "activa" : ""}`}
-            onClick={() => setCategoria(c.value)}
-          >
-            <span aria-hidden="true">{c.emoji}</span> {c.label}
-          </button>
-        ))}
-      </div>
-
-      <Input.TextArea
-        aria-label="Tu mensaje"
-        rows={4}
-        maxLength={2000}
-        showCount
-        placeholder={categoria ? CATEGORIA_POR_ID[categoria].ayuda : "Primero elige un motivo"}
-        value={mensaje}
-        onChange={(e) => setMensaje(e.target.value)}
-        style={{ marginTop: 14, borderRadius: 12 }}
-      />
-      <p className="soporte-nota">
-        Adjuntamos automáticamente la versión de la app y tu zona aproximada para resolverlo más rápido.
-      </p>
-
-      <div className="dual-buttons-container">
-        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={onVolver}>
-          Volver
-        </Button>
-        <Button type="primary" className="btn-action-azul" loading={enviando} onClick={enviar}>
+    <Hoja
+      titulo="Nueva consulta"
+      subtitulo="Te responde el administrador en Soporte, normalmente en menos de 24 horas."
+      onAtras={onVolver}
+      pie={
+        <Button type="primary" className="btn-principal" loading={enviando} onClick={enviar}>
           Enviar
         </Button>
+      }
+    >
+      <div className="campo">
+        <span className="campo-etiqueta" id="soporte-motivo">Motivo</span>
+        <div className="soporte-categorias" role="radiogroup" aria-labelledby="soporte-motivo">
+          {CATEGORIAS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              role="radio"
+              aria-checked={categoria === c.value}
+              className={`soporte-categoria ${categoria === c.value ? "activa" : ""}`}
+              onClick={() => setCategoria(c.value)}
+            >
+              <span aria-hidden="true">{c.emoji}</span> {c.label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div className="campo">
+        <label className="campo-etiqueta" htmlFor="soporte-mensaje">Mensaje</label>
+        <Input.TextArea
+          id="soporte-mensaje"
+          autoSize={{ minRows: 3, maxRows: 6 }}
+          maxLength={2000}
+          placeholder={categoria ? CATEGORIA_POR_ID[categoria].ayuda : "Primero elige un motivo"}
+          value={mensaje}
+          onChange={(e) => setMensaje(e.target.value)}
+        />
+        <p className="campo-ayuda">Adjuntamos la versión de la app y tu zona aproximada para resolverlo más rápido.</p>
+      </div>
+    </Hoja>
   );
 }
