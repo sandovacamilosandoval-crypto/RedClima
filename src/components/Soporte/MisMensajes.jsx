@@ -1,21 +1,23 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { App, Button, Input, Spin, Tag } from "antd";
-import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { ChevronRight } from "lucide";
 import { supabase } from "../../lib/supabase";
 import { mensajeError } from "../../lib/errores";
 import { formatearFecha } from "../../lib/formato";
 import { useAuth } from "../../context/AuthContext";
+import Hoja from "../Hoja/Hoja";
+import Icono from "../Icono";
 import { CATEGORIA_POR_ID, ESTADOS_USUARIO } from "./categorias";
 import "./Soporte.css";
 
-// Casos de soporte del usuario y avisos del equipo
+// Soporte: tus conversaciones con el administrador y sus avisos
 export default function MisMensajes({ onVolver, onNuevo }) {
   const { message } = App.useApp();
   const { refrescarNotificaciones } = useAuth();
   const [tickets, setTickets] = useState(null);
   const [avisos, setAvisos] = useState([]);
   const [sinLeer, setSinLeer] = useState(new Set());
-  const [abierto, setAbierto] = useState(null); // ticket seleccionado
+  const [abierto, setAbierto] = useState(null);
 
   const cargar = useCallback(async () => {
     const [t, n] = await Promise.all([
@@ -27,11 +29,12 @@ export default function MisMensajes({ onVolver, onNuevo }) {
       supabase
         .from("notificaciones")
         .select("id, tipo, titulo, cuerpo, ticket_id, leida, creado_en")
+        .neq("tipo", "zona_interes")
         .order("creado_en", { ascending: false })
         .limit(30),
     ]);
     if (t.error) {
-      message.error(mensajeError(t.error, "No pudimos cargar tus mensajes"));
+      message.error(mensajeError(t.error, "No pudimos cargar tus conversaciones"));
       setTickets([]);
       return;
     }
@@ -39,8 +42,8 @@ export default function MisMensajes({ onVolver, onNuevo }) {
     const notifs = n.data ?? [];
     setSinLeer(new Set(notifs.filter((x) => !x.leida && x.ticket_id).map((x) => x.ticket_id)));
     setAvisos(notifs.filter((x) => !x.ticket_id).slice(0, 5));
-    // Los avisos sin caso se dan por leídos al verlos aquí;
-    // las respuestas de cada caso se marcan al abrirlo
+    // Los avisos del administrador se dan por leídos al verlos aquí;
+    // las respuestas de cada conversación se marcan al abrirla
     if (notifs.some((x) => !x.leida && !x.ticket_id)) {
       await supabase.rpc("marcar_notificaciones_leidas", { p_ticket: null });
     }
@@ -68,60 +71,59 @@ export default function MisMensajes({ onVolver, onNuevo }) {
   }
 
   return (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">Mis mensajes</h2>
-
+    <Hoja
+      titulo="Soporte"
+      subtitulo="Escríbele al administrador de RedClima. Te responde aquí."
+      onAtras={onVolver}
+      pie={
+        <Button type="primary" className="btn-principal" onClick={onNuevo}>
+          Nueva consulta
+        </Button>
+      }
+    >
       {avisos.length > 0 && (
         <div className="avisos">
           {avisos.map((a) => (
             <div key={a.id} className="aviso">
+              <span className="aviso-de">Administrador · {formatearFecha(a.creado_en)}</span>
               <strong>{a.titulo}</strong>
               {a.cuerpo && <p>{a.cuerpo}</p>}
-              <span>{formatearFecha(a.creado_en)}</span>
             </div>
           ))}
         </div>
       )}
 
-      {tickets === null && (
-        <div style={{ textAlign: "center", margin: "16px 0" }}>
-          <Spin />
+      {tickets === null && <Spin />}
+      {tickets?.length === 0 && <p className="vacio">Aún no tienes conversaciones. Si algo falla o tienes una idea, escríbenos.</p>}
+
+      {tickets?.length > 0 && (
+        <div className="lista">
+          {tickets.map((t) => {
+            const c = CATEGORIA_POR_ID[t.categoria];
+            const e = ESTADOS_USUARIO[t.estado];
+            return (
+              <button key={t.id} type="button" className="lista-fila" onClick={() => setAbierto(t)}>
+                <span aria-hidden="true">{c?.emoji}</span>
+                <span className="lista-texto">
+                  {c?.label ?? t.categoria}
+                  <small>
+                    Con el administrador · {formatearFecha(t.actualizado_en)}
+                  </small>
+                </span>
+                {sinLeer.has(t.id) ? (
+                  <span className="insignia" aria-label="Respuesta nueva">1</span>
+                ) : (
+                  <Tag color={e?.color} style={{ marginInlineEnd: 0 }}>{e?.texto ?? t.estado}</Tag>
+                )}
+                <span className="lista-flecha">
+                  <Icono nodo={ChevronRight} tamano={18} />
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
-      {tickets?.length === 0 && (
-        <p className="soporte-vacio">
-          Aún no nos has escrito. Si algo no funciona o tienes una idea, ¡cuéntanos!
-        </p>
-      )}
-
-      <div className="tickets-lista">
-        {tickets?.map((t) => {
-          const c = CATEGORIA_POR_ID[t.categoria];
-          const e = ESTADOS_USUARIO[t.estado];
-          return (
-            <button key={t.id} type="button" className="ticket-item" onClick={() => setAbierto(t)}>
-              <span className="ticket-item-titulo">
-                {sinLeer.has(t.id) && <span className="ticket-nuevo" aria-label="Respuesta nueva" />}
-                <span aria-hidden="true">{c?.emoji}</span> {c?.label ?? t.categoria}
-              </span>
-              <span className="ticket-item-meta">
-                <Tag color={e?.color}>{e?.texto ?? t.estado}</Tag>
-                <span>{formatearFecha(t.actualizado_en)}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="dual-buttons-container">
-        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={onVolver}>
-          Volver
-        </Button>
-        <Button type="primary" icon={<PlusOutlined />} className="btn-action-azul" onClick={onNuevo}>
-          Escribirnos
-        </Button>
-      </div>
-    </div>
+    </Hoja>
   );
 }
 
@@ -180,58 +182,44 @@ function Conversacion({ ticket, onVolver }) {
 
   const c = CATEGORIA_POR_ID[ticket.categoria];
   const e = ESTADOS_USUARIO[estado];
+  const cerrado = estado === "cerrado";
 
   return (
-    <div className="menu-subview-container">
-      <h2 className="subview-title centered">
-        <span aria-hidden="true">{c?.emoji}</span> {c?.label}
-      </h2>
-      <div style={{ textAlign: "center", marginBottom: 10 }}>
-        <Tag color={e?.color}>{e?.texto}</Tag>
-      </div>
-
+    <Hoja
+      titulo={c?.label ?? "Conversación"}
+      subtitulo={`Con el administrador · ${e?.texto ?? estado}`}
+      onAtras={onVolver}
+      pie={
+        cerrado ? null : (
+          <Button type="primary" className="btn-principal" loading={enviando} disabled={!respuesta.trim()} onClick={responder}>
+            Enviar
+          </Button>
+        )
+      }
+    >
       <div className="conversacion" aria-live="polite">
         {mensajes === null && <Spin />}
         {mensajes?.map((m) => (
           <div key={m.id} className={`burbuja ${m.es_staff ? "equipo" : "yo"}`}>
-            <span className="burbuja-autor">{m.es_staff ? "Equipo RedClima" : "Tú"}</span>
+            <span className="burbuja-autor">{m.es_staff ? "Administrador" : "Tú"}</span>
             <p>{m.cuerpo}</p>
             <span className="burbuja-fecha">{formatearFecha(m.creado_en)}</span>
           </div>
         ))}
       </div>
 
-      {estado === "cerrado" ? (
-        <p className="soporte-nota">Este caso está cerrado. Si necesitas algo más, escríbenos uno nuevo.</p>
+      {cerrado ? (
+        <p className="t-xs">Esta conversación está cerrada. Si necesitas algo más, abre una nueva consulta.</p>
       ) : (
-        <>
-          <Input.TextArea
-            aria-label="Tu respuesta"
-            rows={2}
-            maxLength={2000}
-            placeholder="Escribe tu respuesta…"
-            value={respuesta}
-            onChange={(ev) => setRespuesta(ev.target.value)}
-            style={{ borderRadius: 12 }}
-          />
-          <Button
-            type="primary"
-            block
-            loading={enviando}
-            disabled={!respuesta.trim()}
-            onClick={responder}
-            style={{ marginTop: 8, borderRadius: 12 }}
-          >
-            Enviar respuesta
-          </Button>
-        </>
+        <Input.TextArea
+          aria-label="Tu respuesta"
+          autoSize={{ minRows: 2, maxRows: 5 }}
+          maxLength={2000}
+          placeholder="Escribe tu respuesta…"
+          value={respuesta}
+          onChange={(ev) => setRespuesta(ev.target.value)}
+        />
       )}
-
-      <div className="menu-footer-centered">
-        <Button icon={<ArrowLeftOutlined />} className="btn-volver-rojo" onClick={onVolver}>
-          Volver
-        </Button>
-      </div>
-    </div>
+    </Hoja>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { App, Layout, Modal, Spin, Button, Input } from "antd";
 import { MenuOutlined, CloseOutlined } from "@ant-design/icons";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LocateFixed, MapPin, Star } from "lucide";
@@ -12,8 +12,8 @@ import ConfirmReport from "../components/ConfirmReport/ConfirmReport";
 import UserProfileMenu from "../components/UserProfileMenu";
 import Buscador from "../components/Buscador/Buscador";
 import Icono from "../components/Icono";
+import IlustracionUbicacion from "../components/IlustracionUbicacion";
 import {
-  CLIMAS,
   CLIMA_POR_ID,
   UBICACION_DEFECTO,
   RADIO_BUSQUEDA_M,
@@ -37,6 +37,9 @@ import { useAuth } from "../context/AuthContext";
 import "./MapPage.css";
 
 const { Content } = Layout;
+
+// Zoom de calle: ~ unas cuadras alrededor de tu punto
+const ZOOM_CERCA = 17;
 
 const OPCIONES_GPS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
 
@@ -70,6 +73,8 @@ const esAndroid = () => /Android/i.test(navigator.userAgent);
 
 // La base de datos solo acepta reportes con precisión de 500 m o mejor
 const PRECISION_MAXIMA_M = 500;
+// Desde este margen avisamos que el punto puede no ser exacto
+const PRECISION_AVISO_M = 100;
 
 function ComoActivarPrecision() {
   if (esIOS()) {
@@ -78,6 +83,7 @@ function ComoActivarPrecision() {
         <li>Abre <strong>Ajustes › Privacidad y seguridad › Localización</strong>.</li>
         <li>Entra en <strong>Safari</strong> (o el navegador que uses).</li>
         <li>Activa <strong>Ubicación exacta</strong> y vuelve aquí.</li>
+        <li>Activa el <strong>Wi-Fi</strong> (aunque no te conectes): mejora mucho la precisión dentro de casa.</li>
       </ol>
     );
   }
@@ -87,6 +93,7 @@ function ComoActivarPrecision() {
         <li>Abre <strong>Ajustes › Ubicación</strong> y verifica que esté activada.</li>
         <li>Activa <strong>Precisión de la ubicación de Google</strong> (o "Usar ubicación precisa").</li>
         <li>Si el navegador pregunta, elige <strong>Precisa</strong> en vez de Aproximada.</li>
+        <li>Activa el <strong>Wi-Fi</strong> (aunque no te conectes): mejora mucho la precisión dentro de casa.</li>
       </ol>
     );
   }
@@ -160,6 +167,8 @@ function MapPage() {
   const gpsEstado = ubicacion ? "ok" : gpsError ? "error" : "buscando";
   // Ubicación aproximada (computador sin GPS, o celular sin "ubicación exacta")
   const precisionMala = !!ubicacion && ubicacion.precision > PRECISION_MAXIMA_M;
+  // Margen visible: el teléfono no está seguro de dónde estás (aún se puede reportar)
+  const precisionDudosa = !!ubicacion && ubicacion.precision > PRECISION_AVISO_M;
   const [avisoPrecision, setAvisoPrecision] = useState(false);
 
   // Lo que se está mirando: tu zona, un lugar buscado o donde moviste el mapa
@@ -167,7 +176,6 @@ function MapPage() {
   const [destino, setDestino] = useState(null);
   const [lugarBuscado, setLugarBuscado] = useState(null);
   const [pronostico, setPronostico] = useState(null);
-  const [leyenda, setLeyenda] = useState(false);
 
   // Hasta cuándo está desbloqueado el mapa (vence con tu último reporte)
   const [reporteActivoHasta, setReporteActivoHasta] = useState(null);
@@ -262,7 +270,7 @@ function MapPage() {
       primeraVez.current = false;
       Promise.resolve().then(() => {
         setCentro({ lat: ubicacion.lat, lng: ubicacion.lng });
-        setDestino({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: 15 });
+        setDestino({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: ZOOM_CERCA });
       });
     }
   }, [ubicacion]);
@@ -362,13 +370,13 @@ function MapPage() {
   }, []);
 
   const irA = useCallback((lugar) => {
-    setDestino({ lat: lugar.lat, lng: lugar.lng, zoom: lugar.zoom ?? 15 });
+    setDestino({ lat: lugar.lat, lng: lugar.lng, zoom: lugar.zoom ?? ZOOM_CERCA });
     setCentro({ lat: lugar.lat, lng: lugar.lng });
   }, []);
 
   const elegirLugar = (lugar) => {
     setLugarBuscado(lugar);
-    irA({ ...lugar, zoom: 15 });
+    irA({ ...lugar, zoom: ZOOM_CERCA - 1 });
   };
 
   const volverAMiUbicacion = () => {
@@ -377,7 +385,7 @@ function MapPage() {
       return;
     }
     setLugarBuscado(null);
-    irA({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: 15 });
+    irA({ lat: ubicacion.lat, lng: ubicacion.lng, zoom: ZOOM_CERCA });
   };
 
   const guardarLugarComoZona = async (lugar) => {
@@ -518,21 +526,21 @@ function MapPage() {
   // Explicación antes del aviso del navegador (solo la primera vez)
   if (permisoGps === "explicar") {
     return (
-      <div className="gps-explicacion">
-        <div className="lock-card">
-          <span className="lock-emoji" aria-hidden="true">📍</span>
-          <h3>Necesitamos tu ubicación</h3>
-          <p>Para mostrarte el clima de tu zona y que tu reporte aparezca donde estás.</p>
-          <ul className="gps-explicacion-lista">
-            <li>Solo la usamos mientras tienes RedClima abierto.</li>
-            <li>Nadie ve tu ubicación exacta: el mapa la agrupa en zonas de unos 500 m.</li>
-            <li>Te lo preguntamos una sola vez; puedes quitar el permiso cuando quieras.</li>
-          </ul>
-          <Button type="primary" size="large" className="btn-unlock" onClick={() => setPermisoGps("listo")}>
+      <main className="pantalla">
+        <div className="tarjeta centrada">
+          <IlustracionUbicacion />
+          <div>
+            <h1 className="t-titulo">Activa tu ubicación</h1>
+            <p className="t-cuerpo" style={{ marginTop: 8 }}>
+              Para ubicar tu reporte en el mapa. Nadie ve dónde estás exactamente.
+            </p>
+          </div>
+          <Button type="primary" className="btn-principal" onClick={() => setPermisoGps("listo")}>
             Activar ubicación
           </Button>
+          <p className="t-xs">Te lo pedimos una sola vez.</p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -605,7 +613,7 @@ function MapPage() {
         <div className={`map-wrapper ${!desbloqueado ? "is-locked" : ""}`}>
           <MapContainer
             center={[inicio.lat, inicio.lng]}
-            zoom={15}
+            zoom={ZOOM_CERCA}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
@@ -617,6 +625,15 @@ function MapPage() {
               eventHandlers={{ tileerror: alFallarTesela }}
             />
             <ControlMapa destino={destino} onMover={alMover} />
+            {ubicacion && (
+              // Círculo de precisión: el teléfono te ubica en algún punto dentro de él
+              <Circle
+                center={[ubicacion.lat, ubicacion.lng]}
+                radius={ubicacion.precision}
+                interactive={false}
+                pathOptions={{ color: "#2f6fde", weight: 1, opacity: 0.5, fillColor: "#4f8cff", fillOpacity: 0.12 }}
+              />
+            )}
             {ubicacion && <Marker position={[ubicacion.lat, ubicacion.lng]} icon={ICONO_YO} alt="Tu ubicación" interactive={false} />}
             {desbloqueado &&
               zonas.map((z, i) => (
@@ -642,28 +659,15 @@ function MapPage() {
             )}
           </MapContainer>
 
-          {/* Controles inferiores */}
-          {desbloqueado && (
-            <>
-              <button type="button" className="btn-mapa btn-leyenda" onClick={() => setLeyenda((v) => !v)} aria-expanded={leyenda}>
-                Leyenda
-              </button>
-              {leyenda && (
-                <div className="leyenda" role="dialog" aria-label="Leyenda del mapa">
-                  {CLIMAS.map((c) => (
-                    <span key={c.id} className="leyenda-item">
-                      <span className="leyenda-color" style={{ background: c.color }} />
-                      {c.label}
-                    </span>
-                  ))}
-                  <span className="leyenda-nota">Zonas punteadas: último dato (30–60 min)</span>
-                </div>
-              )}
-            </>
-          )}
           <button type="button" className="btn-mapa btn-mi-ubicacion" onClick={volverAMiUbicacion} aria-label="Ir a mi ubicación">
             <Icono nodo={LocateFixed} tamano={20} color="#1d63d6" />
           </button>
+
+          {desbloqueado && precisionDudosa && (
+            <button type="button" className="chip-precision" onClick={() => setAvisoPrecision(true)}>
+              Ubicación imprecisa: ±{formatoDistancia(ubicacion.precision)} · ¿Cómo mejorarla?
+            </button>
+          )}
 
           {gpsEstado === "buscando" && (
             <div className="chip-ubicando" role="status">
@@ -719,41 +723,35 @@ function MapPage() {
               <div className="lock-card">
                 {gpsEstado === "error" ? (
                   <>
-                    <span className="lock-emoji" aria-hidden="true">📍</span>
-                    <h3>Activa tu ubicación</h3>
-                    <p>{textoErrorGps}</p>
-                    <Button type="primary" size="large" className="btn-unlock" onClick={reintentarGps}>
+                    <h2 className="t-h2">Activa tu ubicación</h2>
+                    <p className="t-sm">{textoErrorGps}</p>
+                    <Button type="primary" className="btn-principal" onClick={reintentarGps}>
                       Reintentar
                     </Button>
                   </>
                 ) : (
                   <>
-                    <span className="lock-emoji" aria-hidden="true">🌦️</span>
-                    <h3>¿Cómo está el cielo ahí afuera?</h3>
-                    <p>
+                    <h2 className="t-h2">Reporta para ver el mapa</h2>
+                    <p className="t-sm">
                       {lugarBuscado && mirandoOtroLugar
-                        ? `Reporta el clima donde estás y verás lo que reportan los vecinos en ${lugarBuscado.nombre} durante ${DURACION_REPORTE_MIN} minutos.`
-                        : `Tu reporte tarda 3 segundos y ayuda a quien está por salir cerca de ti. Al reportar, ves el mapa de la comunidad durante ${DURACION_REPORTE_MIN} minutos.`}
+                        ? `Dinos qué clima ves donde estás y mira ${lugarBuscado.nombre} durante ${DURACION_REPORTE_MIN} min.`
+                        : `Dinos qué clima ves y desbloquea el mapa durante ${DURACION_REPORTE_MIN} min.`}
                     </p>
                     <Button
                       type="primary"
-                      size="large"
-                      className="btn-unlock"
+                      className="btn-principal"
                       onClick={abrirReporte}
                       disabled={gpsEstado !== "ok"}
                     >
                       {gpsEstado === "ok" ? "Reportar el clima" : "Ubicándote…"}
                     </Button>
-                    {precisionMala ? (
+                    {precisionMala && (
                       <p className="lock-aviso-precision" role="status">
-                        ⚠️ Tu ubicación es aproximada (±{formatoDistancia(ubicacion.precision)}). Para reportar
-                        necesitamos 500 m o menos.{" "}
+                        Tu ubicación es aproximada (±{formatoDistancia(ubicacion.precision)}).{" "}
                         <button type="button" onClick={() => setAvisoPrecision(true)}>
                           ¿Cómo lo arreglo?
                         </button>
                       </p>
-                    ) : (
-                      <p className="lock-nota">Cada reporte suma {XP_POR_REPORTE} XP para subir de nivel.</p>
                     )}
                   </>
                 )}
@@ -772,7 +770,7 @@ function MapPage() {
           onIrA={(z) => {
             setIsMenuOpen(false);
             setLugarBuscado({ nombre: z.nombre, lat: z.lat, lng: z.lng });
-            irA({ lat: z.lat, lng: z.lng, zoom: 15 });
+            irA({ lat: z.lat, lng: z.lng, zoom: ZOOM_CERCA - 1 });
           }}
         />
       </Modal>
@@ -800,7 +798,7 @@ function MapPage() {
         onCancel={() => setAvisoPrecision(false)}
         centered
         width={380}
-        title="Tu ubicación es aproximada"
+        title={precisionMala ? "Tu ubicación es aproximada" : "Tu ubicación puede estar corrida"}
         footer={[
           <Button key="cerrar" onClick={() => setAvisoPrecision(false)}>
             Entendido
@@ -818,9 +816,12 @@ function MapPage() {
         ]}
       >
         <p className="denuncia-texto">
-          Tu dispositivo nos da tu ubicación con un margen de{" "}
-          <strong>{ubicacion ? formatoDistancia(ubicacion.precision) : "varios kilómetros"}</strong>. Para que tu reporte
-          caiga en la zona correcta necesitamos un margen de 500 m o menos.
+          Tu teléfono te ubica con un margen de{" "}
+          <strong>{ubicacion ? formatoDistancia(ubicacion.precision) : "varios kilómetros"}</strong>: el punto azul puede no
+          estar exactamente donde estás.{" "}
+          {precisionMala
+            ? "Para reportar necesitamos 500 m o menos."
+            : "Puedes reportar, pero con un margen menor tu reporte cae en la zona correcta."}
         </p>
         <ComoActivarPrecision />
       </Modal>

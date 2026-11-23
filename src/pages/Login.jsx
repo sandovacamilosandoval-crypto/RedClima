@@ -64,9 +64,9 @@ export default function Login() {
   // Volviendo de Google y aún cargando el perfil: no mostrar el formulario un instante
   if (session === undefined || (session && perfil === undefined)) {
     return (
-      <div className="login-container" role="status" aria-label="Cargando">
+      <main className="pantalla" role="status" aria-label="Cargando">
         <Spin size="large" />
-      </div>
+      </main>
     );
   }
 
@@ -98,18 +98,23 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <img src={logo} alt="" className="login-logo-small" />
-          <h1 className="login-brand">RedClima</h1>
+    <main className="pantalla">
+      <div className="tarjeta centrada">
+        <img src={logo} alt="" width="48" height="48" />
+        <div>
+          <h1 className="t-titulo">Entra a RedClima</h1>
+          <p className="t-cuerpo" style={{ marginTop: 8 }}>Para ver y reportar el clima de tu zona.</p>
         </div>
 
-        <p className="login-subtitle">
-          Únete a la red para ver y reportar el clima en tiempo real.
-        </p>
-
-        <h2 className="login-title">Inicia Sesión</h2>
+        <Checkbox
+          id="login-terminos"
+          checked={accepted}
+          onChange={(e) => cambiarAcepto(e.target.checked)}
+          className="login-checkbox"
+        >
+          Acepto los <Link className="link-text" to="/terminos">Términos</Link> y la{" "}
+          <Link className="link-text" to="/privacidad">Política de Privacidad</Link>.
+        </Checkbox>
 
         <Button
           className={`btn-google ${!accepted ? "is-pendiente" : ""}`}
@@ -118,31 +123,10 @@ export default function Login() {
           icon={!loading && <GoogleIcon />}
           onClick={handleGoogleLogin}
         >
-          {loading ? "Conectando..." : "Continuar con Google"}
+          {loading ? "Conectando…" : "Continuar con Google"}
         </Button>
-
-        <div className="login-terms-wrapper">
-          <Checkbox
-            id="login-terminos"
-            checked={accepted}
-            onChange={(e) => cambiarAcepto(e.target.checked)}
-            className="login-checkbox"
-          >
-            Acepto los{" "}
-            <Link className="link-text" to="/terminos">
-              Términos
-            </Link>{" "}
-            y la{" "}
-            <Link className="link-text" to="/privacidad">
-              Política de Privacidad
-            </Link>
-            .
-          </Checkbox>
-        </div>
-        {!accepted && (
-          <p className="login-ayuda">Marca la casilla para poder continuar.</p>
-        )}
+        {!accepted && <p className="t-xs">Acepta los términos para continuar.</p>}
       </div>
-    </div>
+    </main>
   );
 }

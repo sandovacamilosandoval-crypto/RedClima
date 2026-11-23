@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { MapPin, Clock, Users } from 'lucide';
 import logo from '../components/assets/icono.png';
+import Icono from '../components/Icono';
 import { supabase } from '../lib/supabase';
 import { DURACION_REPORTE_MIN } from '../constants/clima';
 import { registrarPaso } from '../lib/embudo';
 import './Landing.css';
+
+const BENEFICIOS = [
+  { icono: MapPin, titulo: 'Hiperlocal', texto: 'El clima de tu barrio' },
+  { icono: Clock, titulo: 'En vivo', texto: `Reportes de ${DURACION_REPORTE_MIN} min` },
+  { icono: Users, titulo: 'Comunidad', texto: 'Vecinos reales' },
+];
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -29,60 +37,51 @@ export default function Landing() {
   const reportes = actividad?.reportes_ultima_hora ?? 0;
 
   return (
-    <div className="landing-container">
-      <div className="landing-content">
-        <div className="landing-header">
-          <img src={logo} alt="" className="landing-logo" />
-          <h1 className="landing-title">RedClima</h1>
+    <main className="pantalla">
+      <div className="tarjeta centrada landing">
+        <div className="landing-marca">
+          <img src={logo} alt="" width="36" height="36" />
+          <span>RedClima</span>
         </div>
 
-        <div className="landing-hero">
-          <p className="landing-subtitle">
-            <strong>El clima de tu cuadra, contado por tus vecinos.</strong>
-            <br />
-            Los pronósticos dicen qué <em>podría</em> pasar en la ciudad. RedClima te dice qué{' '}
-            <em>está</em> pasando a pocas cuadras, ahora mismo.
-          </p>
+        <h1 className="t-titulo landing-titulo">
+          El clima de tu cuadra, <span className="acento">en vivo.</span>
+        </h1>
+        <p className="t-cuerpo">Lo reportan tus vecinos, no un pronóstico.</p>
 
-          {actividad && (
-            <p className="landing-contador" aria-live="polite">
-              <span className="landing-pulso" aria-hidden="true" />
-              {reportes > 0
-                ? `${reportes} ${reportes === 1 ? 'reporte' : 'reportes'} en la última hora`
-                : 'Sé de los primeros en reportar hoy'}
-            </p>
-          )}
+        {actividad && (
+          <span className="chip" aria-live="polite">
+            <span className="landing-pulso" aria-hidden="true" />
+            {reportes > 0
+              ? `${reportes} ${reportes === 1 ? 'reporte' : 'reportes'} en la última hora`
+              : 'Sé de los primeros en reportar hoy'}
+          </span>
+        )}
 
-          <div className="landing-benefits">
-            <div className="benefit-card">
-              <h3>Hiperlocal</h3>
-              <p>El clima de tu barrio, no el promedio de toda la ciudad.</p>
-            </div>
-            <div className="benefit-card">
-              <h3>Siempre reciente</h3>
-              <p>Cada reporte dura {DURACION_REPORTE_MIN} minutos: solo ves lo que pasa ahora.</p>
-            </div>
-            <div className="benefit-card">
-              <h3>Comunidad</h3>
-              <p>Vecinos reales confirmando lo que ven por su ventana.</p>
-            </div>
-          </div>
+        <ul className="landing-beneficios">
+          {BENEFICIOS.map((b) => (
+            <li key={b.titulo}>
+              <span className="landing-beneficio-icono">
+                <Icono nodo={b.icono} tamano={20} color="#2f6fde" />
+              </span>
+              <strong>{b.titulo}</strong>
+              <small>{b.texto}</small>
+            </li>
+          ))}
+        </ul>
 
-          <Button
-            type="primary"
-            className="btn-ver-clima"
-            onClick={() => {
-              registrarPaso('clic_ver_mapa');
-              navigate('/login');
-            }}
-          >
-            Ver el mapa en vivo
-          </Button>
-          <p className="landing-nota">
-            Para ver el mapa, comparte el clima de tu zona: así todos aportamos.
-          </p>
-        </div>
+        <Button
+          type="primary"
+          className="btn-principal"
+          onClick={() => {
+            registrarPaso('clic_ver_mapa');
+            navigate('/login');
+          }}
+        >
+          Ver el mapa
+        </Button>
+        <p className="t-xs">Para verlo, comparte el clima de tu zona.</p>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,247 +1,42 @@
-.minimal-menu-wrapper {
-  padding: 5px;
-  color: #2d3436;
-}
-
-.menu-header-minimal {
+/* Menú del usuario: usa el sistema de diseño (Hoja, lista, campos) */
+.menu-cabecera {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 10px 5px 20px;
+  gap: var(--e-3);
 }
 
-.avatar-mini-img {
-  width: 45px;
-  height: 45px;
-  background: white;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.logo-img {
-  width: 100%;
-  height: 100%;
+.menu-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio-sm);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
   object-fit: contain;
+  flex: none;
 }
 
-.user-info-mini h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #2d3436;
-}
+.menu-quien { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
-.menu-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+.menu-xp { display: flex; flex-direction: column; gap: var(--e-1); }
+.menu-xp .ant-progress { margin: 0; }
 
-.menu-item:hover {
-  background: #f9f9f9;
-}
+.lista-fila.sin-accion { cursor: default; }
+.lista-fila.sin-accion:hover { background: var(--superficie); }
+.lista.historial { max-height: 360px; overflow-y: auto; }
 
-.item-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.arrow-icon {
-  font-size: 12px;
-  color: #dfe4ea;
-}
-
-.logout-item-inline {
-  color: #ff7875;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px dashed #ff7875;
-  margin-bottom: 20px;
-}
-
-.menu-subview-container {
-  animation: slideUp 0.3s ease-out;
-}
-
-.subview-title.centered {
-  text-align: center;
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 25px;
-  color: #2d3436;
-}
-
-.input-label {
-  font-weight: 600;
-  font-size: 13px;
-  margin-bottom: 5px;
-  display: block;
-}
-
-.minimal-input,
-.minimal-textarea,
-.minimal-select .ant-select-selector {
-  border-radius: 12px !important;
-  border: 1px solid #f1f2f6 !important;
-  background: #fdfdfd !important;
-}
-
-.hint {
-  font-size: 0.75rem;
-  color: #a0aec0;
-  margin-top: 8px;
-  display: block;
-  margin-left: 5px;
-}
-
-.dual-buttons-container {
-  display: flex;
-  gap: 12px;
-  margin-top: 30px;
-}
-
-.btn-action-azul,
-.btn-volver-rojo {
-  flex: 1;
-  height: 46px !important;
-  border-radius: 15px !important;
-  border: none !important;
-  font-weight: 600 !important;
-  color: white !important;
-}
-
-.btn-action-azul {
-  background-color: #74acff !important;
-  box-shadow: 0 4px 12px rgba(116, 172, 255, 0.3) !important;
-}
-
-.btn-action-azul:disabled {
-  background-color: #d9d9d9 !important;
-  color: #a4b0be !important;
-  box-shadow: none !important;
-  cursor: not-allowed !important;
-}
-
-.btn-volver-rojo {
-  background-color: #ff7875 !important;
-  box-shadow: 0 4px 12px rgba(255, 120, 117, 0.3) !important;
-}
-
-.menu-footer-centered {
-  display: flex;
-  justify-content: center;
-  margin-top: 30px;
-}
-
-.btn-cerrar-capsula {
-  background: #ff7875 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 24px !important;
-  padding: 0 45px !important;
-  height: 42px !important;
-  font-weight: 600 !important;
-}
-
-.h-scroll {
-  max-height: 250px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.h-row {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 0.8fr;
-  padding: 12px 5px;
-  font-size: 13px;
-  border-bottom: 1px solid #f1f2f6;
-  align-items: center;
-}
-
-.h-head {
-  font-weight: bold;
-  color: #a4b0be;
-  border-bottom: 2px solid #f1f2f6;
-}
-
-.truncate-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.clima-text {
-  color: #74acff;
-  font-weight: 600;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Los elementos del menú son <button> (accesibles con teclado) */
-button.menu-item {
-  width: 100%;
-  border: none;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-}
-
-button.menu-item.logout-item-inline {
-  border: 1px dashed #ff7875;
-  color: #cf1322; /* contraste AA sobre blanco */
-}
-
-.menu-item:focus-visible {
-  outline: 3px solid #1a5fd0;
-  outline-offset: 2px;
-}
-
-/* Barra de XP: "10 XP" a la izquierda y "1 / 100 reportes" a la derecha */
-.xp-labels {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  color: #3d4451;
-  margin-bottom: 4px;
-}
-
-/* Vista de niveles */
-.niveles-intro { font-size: 13px; color: #596579; margin: 0 0 12px; }
-.niveles-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+/* Niveles */
+.niveles-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--e-2); }
 .niveles-lista li {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid #edf0f4;
+  gap: var(--e-3);
+  align-items: center;
+  padding: var(--e-3);
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--borde);
 }
-.niveles-lista li.actual { border-color: #1d63d6; background: #f4f8ff; }
-.niveles-lista strong { display: block; font-size: 14px; color: #1a202c; }
-.niveles-lista span { display: block; font-size: 12px; color: #3d4451; }
-.niveles-lista .niveles-premio { color: #596579; font-style: italic; }
+.niveles-lista li.actual { border-color: var(--primario); background: var(--primario-suave); }
+.niveles-lista strong { display: block; font-size: var(--t-sm); color: var(--texto); }
+.niveles-lista span { display: block; font-size: var(--t-xs); color: var(--texto-3); }
 .niveles-num {
   flex: none;
   width: 28px;
@@ -251,5 +46,5 @@ button.menu-item.logout-item-inline {
   place-items: center;
   color: #fff !important;
   font-weight: 700;
-  font-size: 13px !important;
+  font-size: var(--t-sm) !important;
 }

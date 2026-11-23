@@ -226,7 +226,7 @@ function TicketDrawer({ ticketId, onClose, onCambio }) {
       open={!!ticketId}
       onClose={onClose}
       size={Math.min(640, typeof window !== "undefined" ? window.innerWidth : 640)}
-      title={t ? `Caso #${t.id} · ${CATEGORIA_POR_ID[t.categoria]?.label}` : "Caso"}
+      title={t ? `@${t.usuario?.username ?? "usuario"} · ${CATEGORIA_POR_ID[t.categoria]?.label} (#${t.id})` : "Caso"}
       destroyOnHidden
     >
       {!t ? (
@@ -319,7 +319,7 @@ function TicketDrawer({ ticketId, onClose, onCambio }) {
               <div key={m.id} className={`admin-burbuja ${m.es_staff ? "equipo" : "usuario"} ${m.interno ? "interno" : ""}`}>
                 <span className="admin-burbuja-autor">
                   {m.interno ? "🔒 Nota interna · " : ""}
-                  {m.es_staff ? `Equipo (@${m.autor?.username ?? "—"})` : `@${m.autor?.username ?? "usuario"}`}
+                  {m.es_staff ? `Administrador · @${m.autor?.username ?? "sistema"}` : `@${m.autor?.username ?? "usuario"}`}
                 </span>
                 <p>{m.cuerpo}</p>
                 <span className="admin-burbuja-fecha">{formatearFecha(m.creado_en)}</span>

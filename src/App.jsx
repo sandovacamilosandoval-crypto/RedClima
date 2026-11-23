@@ -77,7 +77,21 @@ function RutaRegistro() {
 
 function App() {
   return (
-    <ConfigProvider locale={esES} theme={{ token: { colorPrimary: "#74acff", borderRadius: 12 } }}>
+    <ConfigProvider
+      locale={esES}
+      theme={{
+        token: {
+          colorPrimary: "#363636",
+          colorLink: "#2f6fde",
+          colorInfo: "#2f6fde",
+          borderRadius: 14,
+          fontFamily: '"Nunito Variable", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: 14,
+          colorText: "#363636",
+          colorTextSecondary: "#5f5f5f",
+        },
+      }}
+    >
       {/* AntApp da acceso a message/modal con el tema y el idioma (App.useApp) */}
       {/* Los avisos aparecen debajo de la barra de búsqueda del mapa */}
       <AntApp message={{ top: 76, maxCount: 3 }}>

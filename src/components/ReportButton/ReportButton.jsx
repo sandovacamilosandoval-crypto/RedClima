@@ -4,7 +4,7 @@ import './ReportButton.css';
 const ReportButton = ({ onClick }) => {
   return (
     <button className="btn-reportar-custom" onClick={onClick}>
-      Reportar Clima
+      Reportar el clima
     </button>
   );
 };

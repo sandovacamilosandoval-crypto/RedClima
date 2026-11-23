@@ -1,46 +1,29 @@
-.zonas-nota { font-size: 12px; color: #596579; margin: 0 0 10px; }
-.zona-elegida { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: #1a202c; }
-
-.zonas-lista { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-
-.zona-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid #edf0f4;
-  border-radius: 12px;
-  padding-right: 4px;
-}
-
-.zona-item-principal {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 12px;
-}
-
-.zona-item-principal:hover { background: #f8fafc; }
-.zona-item-principal:focus-visible { outline: 3px solid #1a5fd0; outline-offset: 2px; }
+.zona-item { display: flex; align-items: center; border-top: 1px solid var(--borde); background: var(--superficie); }
+.zona-item:first-child { border-top: none; }
+.zona-item .lista-fila { border-top: none; flex: 1; }
+.zona-borrar { margin-right: var(--e-2); color: var(--texto-3) !important; }
 
 .zona-item-icono {
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--clima) 14%, #fff);
-  color: #596579;
 }
 
-.zona-item-texto { display: flex; flex-direction: column; min-width: 0; }
-.zona-item-texto strong { font-size: 14px; color: #1a202c; }
-.zona-item-texto small { font-size: 12px; color: #596579; }
+.enlace {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--primario);
+  cursor: pointer;
+}

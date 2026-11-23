@@ -1,28 +1,20 @@
 import React from 'react';
 import { Button } from 'antd';
-import './ConfirmReport.css';
+import Hoja from '../Hoja/Hoja';
 
 const ConfirmReport = ({ climaLabel, zonaLabel, loading, onConfirm, onCancel }) => {
   const mismoClima = climaLabel === zonaLabel;
   return (
-    <div className="confirm-report-container">
-      <h2 className="confirm-title">Ya hay reportes aquí</h2>
-      <p className="confirm-subtitle">
-        La zona donde estás marca <strong>{zonaLabel}</strong>.{" "}
-        {mismoClima
-          ? "¿Confirmas que sigue así?"
-          : <>¿Confirmas que ahora ves <strong>{climaLabel}</strong>?</>}
-      </p>
-
-      <div className="confirm-actions">
-        <Button className="btn-confirm volver" onClick={onCancel}>
-          Volver
+    <Hoja
+      titulo={mismoClima ? `¿Sigue ${zonaLabel.toLowerCase()}?` : `¿Ahora ves ${climaLabel.toLowerCase()}?`}
+      subtitulo={`Tus vecinos reportan ${zonaLabel.toLowerCase()} en esta zona.`}
+      onCerrar={onCancel}
+      pie={
+        <Button type="primary" className="btn-principal" loading={loading} onClick={onConfirm}>
+          {mismoClima ? 'Sí, confirmar' : `Sí, reportar ${climaLabel.toLowerCase()}`}
         </Button>
-        <Button className="btn-confirm actualizar" loading={loading} onClick={onConfirm}>
-          {mismoClima ? "Confirmar" : "Actualizar"}
-        </Button>
-      </div>
-    </div>
+      }
+    />
   );
 };
 

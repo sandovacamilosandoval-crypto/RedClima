@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
   // Rol en el equipo ('moderador' | 'admin' | null). undefined = cargando
   const [rolCargado, setRolCargado] = useState({ uid: null, rol: undefined });
   // Notificaciones sin leer (respuestas de soporte, avisos de moderación)
-  const [noLeidas, setNoLeidas] = useState(0);
+  const [noLeidas, setNoLeidas] = useState({ total: 0, zonas: 0 });
 
   useEffect(() => {
     supabase.auth
@@ -59,11 +59,15 @@ export function AuthProvider({ children }) {
 
   const refrescarNotificaciones = useCallback(async () => {
     if (!uid) return;
-    const { count, error } = await supabase
-      .from("notificaciones")
-      .select("id", { count: "exact", head: true })
-      .eq("leida", false);
-    if (!error) setNoLeidas(count ?? 0);
+    const [todas, zonas] = await Promise.all([
+      supabase.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
+      supabase
+        .from("notificaciones")
+        .select("id", { count: "exact", head: true })
+        .eq("leida", false)
+        .eq("tipo", "zona_interes"),
+    ]);
+    if (!todas.error) setNoLeidas({ total: todas.count ?? 0, zonas: zonas.error ? 0 : zonas.count ?? 0 });
   }, [uid]);
 
   // Revisar cada 2 minutos y al volver a la pestaña
@@ -123,7 +127,10 @@ export function AuthProvider({ children }) {
         reintentarPerfil,
         refrescarPerfil,
         cerrarSesion,
-        noLeidas: session ? noLeidas : 0,
+        // total para el botón del menú; separadas para Soporte y Mis zonas
+        noLeidas: session ? noLeidas.total : 0,
+        noLeidasZonas: session ? noLeidas.zonas : 0,
+        noLeidasSoporte: session ? Math.max(0, noLeidas.total - noLeidas.zonas) : 0,
         refrescarNotificaciones,
       }}
     >
