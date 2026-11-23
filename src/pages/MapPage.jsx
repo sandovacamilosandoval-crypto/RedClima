@@ -19,6 +19,7 @@ import {
   RADIO_BUSQUEDA_M,
   REFRESCO_ZONAS_MS,
   TILES_URL,
+  TILES_URL_RESPALDO,
   TILES_ATRIBUCION,
   MAPA_SUAVE,
   DURACION_REPORTE_MIN,
@@ -146,6 +147,14 @@ function MapPage() {
 
   const desbloqueado = reporteActivoHasta !== null && reporteActivoHasta > ahora;
   const avisosMostrados = useRef(new Set());
+
+  // Mapa base: si el estilo principal no carga, usar el de respaldo
+  const [urlMapa, setUrlMapa] = useState(TILES_URL);
+  const erroresMapa = useRef(0);
+  const alFallarTesela = useCallback(() => {
+    erroresMapa.current += 1;
+    if (erroresMapa.current >= 3 && TILES_URL_RESPALDO) setUrlMapa(TILES_URL_RESPALDO);
+  }, []);
 
   // ¿Ya dio permiso antes? Entonces no hace falta explicarle nada
   useEffect(() => {
@@ -555,7 +564,13 @@ function MapPage() {
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
-            <TileLayer url={TILES_URL} maxZoom={19} attribution={TILES_ATRIBUCION} detectRetina />
+            <TileLayer
+              key={urlMapa}
+              url={urlMapa}
+              maxZoom={19}
+              attribution={TILES_ATRIBUCION}
+              eventHandlers={{ tileerror: alFallarTesela }}
+            />
             <ControlMapa destino={destino} onMover={alMover} />
             {ubicacion && <Marker position={[ubicacion.lat, ubicacion.lng]} icon={ICONO_YO} alt="Tu ubicación" interactive={false} />}
             {desbloqueado &&
